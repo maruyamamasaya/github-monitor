@@ -1,53 +1,44 @@
 # Testing
 
-プロジェクトの検証方針と、確立済みコマンドの正本です。Starterでは技術スタックが未定のため、実在しないコマンドを記載しません。決定後、「変更タイプ → 必要な検証」の対応を整理してください。実行可能になったら短時間の**Fast Validation**と網羅的な**Full Validation**を分けます。
-
 ## Testing Strategy
 
-未定。
+純粋関数をUnit testし、GitHub APIはfixture/mockでresponse変換を検証する。大量のlive API testは行わない。UIはlint/typecheck/buildと手動確認で検証する。
 
 ## Validation Matrix
 
 | 変更タイプ | 必要な検証 |
 | --- | --- |
-| 未定 | 技術スタック決定後に定義 |
+| 集計・期間 | `npm test`、`npm run typecheck` |
+| GitHub client | fixture test、lint、typecheck |
+| UI/route | lint、typecheck、build、responsive手動確認 |
+| dependency/config | install、全検証、audit確認 |
+| 文書 | 実装・README・正本間の整合確認 |
 
 ## Fast Validation
 
-未定。
+`npm run lint && npm run typecheck && npm test`
 
 ## Full Validation
 
-未定。
-
-## Lint
-
-未定。
-
-## Format Check
-
-未定。
-
-## Typecheck
-
-未定。
+`npm run lint && npm run typecheck && npm test && npm run build`
 
 ## Unit Test
 
-未定。
+VitestでActivity Score、期間境界（Asia/Tokyo）、集計、空データ、GitHub response変換を検証する。
 
-## Integration Test
+## Integration / E2E
 
-未定。
-
-## E2E
-
-未定。
-
-## Build
-
-未定。
+自動E2Eはv1初期版では未導入。GitHub live APIは手動smoke testに限定する。
 
 ## Manual Verification
 
-文書間リンク、正本との整合、プロジェクト固有の受け入れ条件を確認する。具体的手順は初期化後に定義する。
+- Token未設定、無効Token、空Repository、部分API失敗。
+- Today/7/30切替、GitHub link、狭いviewport。
+- rate-limit表示とprivate metadataの不要な露出がないこと。
+
+## Commands
+
+- Lint: `npm run lint`
+- Typecheck: `npm run typecheck`
+- Unit: `npm test`
+- Build: `npm run build`

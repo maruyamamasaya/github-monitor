@@ -1,43 +1,32 @@
 # Security
 
-技術スタック非依存のセキュリティ方針の正本です。脅威、信頼境界、採用方針が決まった時に更新します。秘密情報、credential、token、鍵、個人情報の実値は、この文書を含むRepositoryへ記録しません。
+## Authentication and Authorization
 
-## Authentication
-
-必要性、主体、認証強度、失効方針を定義する。
-
-## Authorization
-
-権限モデル、拒否時の既定動作、境界での強制方法を定義する。
+GitHub Personal Access TokenでGitHub APIを認証する。Application独自のユーザー認証はv1対象外なので、public internetへ公開する場合はhost側のaccess controlを必須とする。GitHub上の閲覧範囲はToken権限を上限とする。
 
 ## Secrets
 
-保存・配布・rotation・失効方法を定義し、値そのものは記録しない。
+- `GITHUB_TOKEN`は`.env.local`またはdeployment secretへ保存し、Git管理しない。
+- `.env.example`には空値だけを置く。
+- TokenをClient Component、HTML、URL、例外message、ログへ渡さない。
+- fine-grained tokenと最小限のread-only Repository権限を推奨し、不要時は失効する。
 
 ## Sensitive Data
 
-分類、最小収集、暗号化、アクセス制御、削除要件を定義する。
+Private Repository名、commit message、活動情報は機密になり得る。ServerからDashboard利用者へ必要な表示情報だけを返し、第三者analyticsは使用しない。
 
 ## Input Validation
 
-信頼境界、検証、正規化、出力時の安全化を定義する。
+環境変数のusernameと除外Repository名を正規化する。dynamic routeはencode/decodeし、GitHub API URL segmentを必ずencodeする。外部URLはGitHub APIから得たHTTPS URLだけを表示に使う。
 
-## External Services
+## External Services and Logging
 
-送信データ、権限、障害時動作、契約上の制約を確認する。
-
-## Logging
-
-監査要件と、秘密・個人情報を記録しないための方針を定義する。
+外部送信先はGitHub APIのみ。認証headerを含むrequestや生のerror responseをログ出力しない。UI errorは安全な分類済みmessageへ変換する。
 
 ## Dependencies
 
-選定、更新、脆弱性確認、供給網リスクへの対応を定義する。
-
-## Data Retention
-
-保持期間、削除、backup上の扱いを`DATA_MODEL.md`と整合させる。
+依存はNext.js/React/Tailwind/Vitestへ限定し、lockfileを管理し、release前にauditと更新状況を確認する。
 
 ## Security Review
 
-リスクの高い変更とrelease前に`.ai/checklists/security-review.md`を用い、未解決リスクと承認者を明示する。
+release前にClient bundleへTokenが含まれないこと、`.env.local`がignoredであること、Token未設定/無効時の表示を確認する。

@@ -1,0 +1,11 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { loadDashboard } from "@/lib/github/dashboard";
+
+export default async function RepositoryPage({ params }: { params: Promise<{ owner: string; repo: string }> }) {
+  const { owner, repo } = await params;
+  const data = await loadDashboard();
+  const item = data.repositories.find((entry) => entry.repository.owner.toLowerCase() === owner.toLowerCase() && entry.repository.name.toLowerCase() === repo.toLowerCase());
+  if (!item) notFound();
+  return <main className="shell"><Link href="/" className="muted text-xs hover:text-white">← Dashboard</Link><header className="mt-7 flex flex-wrap items-end justify-between gap-4"><div><p className="eyebrow">Repository detail</p><h1 className="mt-3 text-3xl font-semibold">{item.repository.name}</h1><p className="muted mt-2 text-sm">{item.repository.owner} · {item.repository.private ? "Private" : "Public"} · {item.repository.language ?? "No primary language"}</p></div><a className="rounded-md border border-[var(--line)] px-4 py-2 text-xs hover:border-[#56d364]" href={item.repository.url} target="_blank" rel="noreferrer">Open on GitHub ↗</a></header><section className="panel mt-6 overflow-hidden"><div className="border-b border-[var(--line)] p-5"><p className="eyebrow">Recent commits · 30 days</p></div>{item.commits.length === 0 ? <p className="muted p-10 text-center">期間内のcommitはありません。</p> : <div>{item.commits.map((commit) => <a key={commit.sha} href={commit.url} target="_blank" rel="noreferrer" className="block border-b border-[var(--line)] p-5 last:border-0 hover:bg-white/[.025]"><div className="flex flex-wrap justify-between gap-3"><p className="max-w-3xl text-sm font-medium">{commit.message}</p><time className="muted text-xs">{new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", dateStyle: "medium", timeStyle: "short" }).format(new Date(commit.authoredAt))}</time></div><div className="mt-3 flex gap-4 text-xs"><code className="muted">{commit.sha.slice(0,7)}</code><span className="text-[#56d364]">+{commit.additions}</span><span className="text-[#f85149]">-{commit.deletions}</span><span className="muted">{commit.changedFiles} files</span></div></a>)}</div>}</section></main>;
+}

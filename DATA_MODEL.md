@@ -1,43 +1,23 @@
 # Data Model
 
-永続化方式と永続化モデルの正本です。業務上の意味は`DOMAIN.md`、システム全体の構造は`ARCHITECTURE.md`へ記録します。永続化が不要なプロジェクトでは、**Persistence Strategy: Not applicable**と理由を記録し、残りを無理に埋めません。
-
 ## Persistence Strategy
 
-未定。
+**Not applicable.** v1は外部DBを使わず、GitHubを正本、Next.js cacheを短期cacheとして扱う。ユーザー設定は環境変数で管理する。
 
-## Entities
+## Runtime Models
 
-未定。
+- `Repository`: id、owner、name、visibility、URL、default branch、updated/pushed時刻、language、archived、fork。
+- `CommitActivity`: SHA、Repository、author日時、message、additions、deletions、changedFiles、URL。
+- `PeriodMetrics`: commits、activeDays、additions、deletions、changedLines、changedFiles、score。
+- `RepositoryActivity`: RepositoryとToday/7/30 Days metrics、直近commit。
+- `DashboardData`: Repository活動、30日daily series、summary、rate limit、warnings、generatedAt。
 
-## Tables / Collections
+## Identity and Relations
 
-未定。
+- RepositoryはGitHub numeric idで一意。
+- CommitはRepository idとSHAの組で一意。
+- Repositoryは複数Commit Activityを持つ。
 
-## Primary Keys
+## Lifecycle and Retention
 
-未定。
-
-## Foreign Keys
-
-未定。
-
-## Relations
-
-未定。
-
-## Ownership
-
-未定。
-
-## Lifecycle
-
-未定。
-
-## Retention
-
-未定。
-
-## Migration Notes
-
-未定。確立した移行方針と互換性上の注意だけを記録します。
+データはrequest時に取得され、cache期限後に再検証される。永続migration、backup、削除処理は不要。

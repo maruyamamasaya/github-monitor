@@ -1,18 +1,19 @@
 # Current
 
-この文書は現在地だけを示します。経緯はGit history、重要判断はADRへ残し、完了履歴を蓄積しません。
-
 ## Current Phase
 
-Starter / Project not initialized
+v1 complete / ready for local GitHub connection
 
 ## Current State
 
-プロジェクト固有情報は未初期化で、アプリケーションコードは未実装です。
+Next.js Dashboard、GitHub API連携、期間別集計、Repository詳細、cache、rate-limit表示、error/loading/empty state、Unit Testを実装済み。
 
 ## Working
 
-- Documentation starter is available.
+- Today / 7 Days / 30 DaysのDashboard切替。
+- Repository別Activity Score、30日daily chart、commit detail。
+- Server-only GitHub token、5分cache、取得並列数制限。
+- lint、typecheck、10 Unit Tests、production buildが成功。
 
 ## In Progress
 
@@ -20,8 +21,9 @@ Starter / Project not initialized
 
 ## Known Issues
 
-- Project purpose, scope, and technology stack are undecided.
+- 実TokenによるGitHub live smoke testは利用者の`.env.local`設定後に必要。
+- GitHub API仕様上、1 Repositoryで30日100件を超えるcommitはv1では先頭100件まで。
 
 ## Immediate Next
 
-- コピー後、READMEの初期化手順に従い、人間のレビューを受ける。
+- `.env.local`へfine-grained tokenを設定し、実データ表示を確認する。

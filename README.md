@@ -1,43 +1,64 @@
-# AI-driven Development Starter
+# github-monitor
 
-AIエージェントと人間が、要件整理・設計・実装・レビュー・検証を一貫した方法で始めるための、技術スタック非依存のStarter Repositoryです。現時点ではプロジェクト固有の仕様やアプリケーションコードはありません。
+複数のGitHub Repositoryを横断し、「最近どのプロジェクトを一番触っているか」を1画面で確認する個人用Dashboardです。
 
-## 含まれるもの
+## Features
 
-- 現在地、設計、ドメイン、データ、優先順位、テスト、セキュリティの正本テンプレート
-- 重要な設計判断を残すADR領域
-- AI向けの短いworkflow、完了checklist、必要時に使うtemplate
-- Progressive Documentation（必要になった時だけ文書を増やす）のルール
+- Today / 7 Days / 30 Daysのsummary切替
+- Repository別のcommit、追加・削除行、active days、Activity Score
+- 過去30日のdaily commit chart
+- Repository詳細と直近commit stats
+- Private Repository対応（Token権限内）
+- archived / fork / 任意Repositoryの除外
+- GitHub API rate limit、loading、error、empty state
 
-## 含まれないもの
+## Setup
 
-実装、技術スタック、依存関係、DB migration、CI/CD、コンテナ、デプロイ設定、実装用のfrontend/backend構成は意図的に含めていません。CODEMAP、階層型AGENTS、統合verify script、sessionsも必要になるまで作りません。
+Node.js 20.9以降を用意し、依存関係をinstallします。
 
-## コピー直後に行うこと
+```bash
+npm install
+cp .env.example .env.local
+```
 
-1. プロジェクトの目的と対象範囲を定義する。
-2. [DOMAIN.md](DOMAIN.md)を初期化する。
-3. [ARCHITECTURE.md](ARCHITECTURE.md)を初期化する。
-4. 永続化が必要なら[DATA_MODEL.md](DATA_MODEL.md)を初期化し、不要なら`Not applicable`と記録する。
-5. [SECURITY.md](SECURITY.md)を初期化する。
-6. [ROADMAP.md](ROADMAP.md)に最初のPhaseを作る。
-7. [CURRENT.md](CURRENT.md)に現在地を記録する。
-8. 人間が内容と未決事項をレビューする。
-9. 合意後に初めて実装を始める。
+`.env.local`を編集します。
 
-## 推奨開発フロー
+```env
+GITHUB_TOKEN=github_pat_your_token
+GITHUB_USERNAME=maruyamamasaya
+GITHUB_EXCLUDED_REPOS=owner/repo,another-repo
+GITHUB_INCLUDE_ARCHIVED=false
+GITHUB_INCLUDE_FORKS=false
+```
 
-要求を明確化し、正本を確認・更新して合意を得た後、検索で変更対象を絞り、最小変更を実装します。関連する検証とレビューを行い、実装と正本を同期してください。AI向けの詳細ルールは[AGENTS.md](AGENTS.md)を参照してください。
+fine-grained Personal Access Tokenには、対象Repositoryのread-only `Metadata` と `Contents` 権限を付けてください。TokenはClientへ送信されません。
 
-## 主要ドキュメント
+## Run
 
-| 文書 | 役割 |
-| --- | --- |
-| [CURRENT.md](CURRENT.md) | 現在地 |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | 現在のシステム構造 |
-| [DOMAIN.md](DOMAIN.md) | 業務概念とルール |
-| [DATA_MODEL.md](DATA_MODEL.md) | 永続化モデル |
-| [ROADMAP.md](ROADMAP.md) | 開発優先順位 |
-| [TESTING.md](TESTING.md) | 検証方針 |
-| [SECURITY.md](SECURITY.md) | セキュリティ方針 |
-| [decisions/](decisions/) | 重要な設計判断 |
+```bash
+npm run dev
+```
+
+ブラウザで `http://localhost:3000` を開きます。GitHub responseはServer側で5分cacheされます。
+
+## Validation
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
+
+## Activity Score
+
+Repository間の相対比較用参考値です。開発時間ではありません。
+
+```text
+commits × 4
++ activeDays × 8
++ log2(changedLines + 1) × 3
++ log2(changedFiles + 1) × 2
+```
+
+設計の正本は[ARCHITECTURE.md](ARCHITECTURE.md)、業務ルールは[DOMAIN.md](DOMAIN.md)、セキュリティは[SECURITY.md](SECURITY.md)を参照してください。

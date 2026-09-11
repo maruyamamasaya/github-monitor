@@ -1,19 +1,24 @@
 # Roadmap
 
-開発の方向と優先順位を共有する正本です。細かな作業、担当、日々の進捗を管理するタスク一覧にはしません。
+## Now — v1
 
-## Now
+- 複数Repository横断のToday/7/30 Days Dashboard。
+- Commit、changed lines、active days、Activity Score、30日daily chart。
+- Repository一覧と直近commit詳細。
+- Server-only GitHub API、cache、rate-limit表示、error/loading/empty state。
+- 集計・日付境界・API変換のUnit test。
 
-- プロジェクトの目的と初期設計を定義し、人間の合意を得る。
+## Next — v1.x
 
-## Next
+- 大規模Repository数での取得時間・rate limit計測とincremental cache改善。
+- Repository別daily chart切替。
+- 除外設定のUIと永続化方式の検討。
 
-- 初期化後に定義する。
+## Later — v2+
 
-## Later
+- AI週次要約、期間比較、streak、停止Repository、message分類。
+- PR/Issue、language別、project trend、local Git解析。
 
-- 必要になった段階で定義する。
+## Deferred / Won't Do in v1
 
-## Deferred / Won't Do
-
-- 未定。理由が将来重要になる場合はADRへリンクする。
+Supabase、ユーザー認証、複数Account、Organization/Team分析、通知、開発時間推定、SaaS、Desktop/Mobile app。
