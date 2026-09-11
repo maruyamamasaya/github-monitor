@@ -23,8 +23,21 @@ export type CommitActivity = {
   additions: number;
   deletions: number;
   changedFiles: number;
+  files?: CommitFileDetail[];
   url: string;
 };
+
+export type CommitFileStatus = "added" | "modified" | "removed" | "renamed" | "copied" | "changed" | "unchanged" | string;
+export type CommitFileDetail = { filename: string; status: CommitFileStatus; additions: number; deletions: number; changes: number };
+export type FileCategory = "code" | "test" | "docs" | "config" | "other";
+export type CompositionItem = { category: FileCategory; changedLines: number; changedFiles: number; share: number };
+export type DevelopmentSnapshot = { commits: number; additions: number; deletions: number; changedLines: number; meaningfulChangedLines: number; netLines: number; changedFiles: number; newFiles: number | null; activeRepositories: number; activeDays: number; testLines: number | null; testFiles: number | null; docsLines: number | null; docsFiles: number | null; fileDetailCoverage: number; coveredCommits: number; totalCommits: number };
+export type DensityBreakdown = { volume: number; consistency: number; breadth: number; delivery: number; engineeringActivity: number };
+export type DevelopmentDensity = { score: number; breakdown: DensityBreakdown; explanations: string[]; previousScore: number; delta: number };
+export type GitActivitySessions = { count: number; medianMinutes: number; longestMinutes: number; commitsPerSession: number; observedWindowMinutes: number };
+export type RepositoryDevelopmentScale = { repository: string; changedLines: number; meaningfulChangedLines: number; netLines: number; changedFiles: number; testLines: number | null; docsLines: number | null; commits: number; coverage: number };
+export type DevelopmentPeriod = { snapshot: DevelopmentSnapshot; composition: CompositionItem[]; density: DevelopmentDensity; sessions: GitActivitySessions; repositories: RepositoryDevelopmentScale[]; summary: string; detailedSummary: string };
+export type DevelopmentAnalysis = Record<PeriodKey, DevelopmentPeriod>;
 
 export type Metrics = {
   commits: number;
@@ -44,6 +57,7 @@ export type RepositoryActivity = {
 
 export type DailyActivity = { date: string; commits: number; changedLines: number; changedFiles: number; score: number; activeRepositories: number };
 export type RateLimit = { remaining: number; limit: number; resetAt: string };
+export type ApiMetrics = { apiRequests: number; cacheHits: number; cacheHitRate: number; repositories: number; commitsLoaded: number; newCommitsFetched: number; commitDetailsFetched: number; syncDurationMs: number; syncMode: "cold" | "warm"; budgetRemaining: number };
 
 export type MomentumBand = "HOT" | "STABLE" | "COOLING";
 export type Momentum = { value: number; band: MomentumBand };
@@ -75,6 +89,7 @@ export type CockpitAnalysis = {
   weekComparison: ComparisonRow[];
   repositoryWeekChange: { repository: string; change: number | null }[];
   anomaly: AnomalyAnalysis;
+  development: DevelopmentAnalysis;
 };
 
 export type DashboardData = {
@@ -83,6 +98,7 @@ export type DashboardData = {
   dailyActivity: DailyActivity[];
   analysis: CockpitAnalysis;
   rateLimit: RateLimit | null;
+  apiMetrics: ApiMetrics;
   warnings: string[];
   generatedAt: string;
 };

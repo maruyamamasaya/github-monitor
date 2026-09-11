@@ -2,6 +2,7 @@ import type { CockpitAnalysis, CommitActivity, CommitSizeBucket, DayHourCell, Fo
 import { aggregateMetrics } from "./aggregate";
 import { getJstStart, toJstDateKey } from "./date-range";
 import { buildAnomalyAnalysis } from "./anomaly/build-change-feed";
+import { analyzeDevelopment } from "./development";
 
 export const COMMIT_SIZE_BUCKETS = [
   { key: "XS", label: "0–9", min: 0, max: 9 }, { key: "S", label: "10–49", min: 10, max: 49 },
@@ -56,5 +57,5 @@ export function analyzeCockpit(repositories: RepositoryActivity[], now=new Date(
   const repositoryWeekChange=repositories.map(r=>{const cur=r.commits.filter(c=>new Date(c.authoredAt)>=currentStart).length;const prev=r.commits.filter(c=>new Date(c.authoredAt)>=previousStart&&new Date(c.authoredAt)<currentStart).length;return{repository:r.repository.name,change:percentChange(cur,prev)}}).sort((a,b)=>(b.change??999)-(a.change??999)).slice(0,6);
   const days=new Set(all.map(c=>toJstDateKey(c.authoredAt))); let streak=0; const cursor=new Date(now); while(days.has(toJstDateKey(cursor))){streak++;cursor.setUTCDate(cursor.getUTCDate()-1);}
   const anomaly=buildAnomalyAnalysis(repositories,now,focus.week);
-  return {summaries,activeDays,streak,focus,commitSizes,dayHour,languages,momentum,weekComparison,repositoryWeekChange,anomaly};
+  return {summaries,activeDays,streak,focus,commitSizes,dayHour,languages,momentum,weekComparison,repositoryWeekChange,anomaly,development:analyzeDevelopment(repositories,now)};
 }

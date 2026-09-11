@@ -8,6 +8,9 @@
 - **Active Repository**: 選択期間内に1件以上のcommitがあるRepository。
 - **Activity Score**: Repository間の相対比較用の参考値。
 - **Change Event**: 現在値と統一baselineの差から決定論的に生成する、info / notable / strongの観測イベント。生産性評価や障害判定ではない。
+- **Meaningful Changed LOC**: file detail取得済みcommitではlockfile、generated/vendor/build/minified/binaryを除外した変更行。未取得commitはraw changed linesを暫定利用しcoverageを併記する。
+- **Development Density**: Volume 30%、Consistency 25%、Breadth 15%、Delivery 15%、Engineering Activity 15%の活動密度参考値。能力・品質・生産性を評価しない。
+- **Git Activity Session**: commit間隔が90分未満の連続群。90分以上で新sessionとし、作業時間とは呼ばない。
 
 ## Entities
 
@@ -36,6 +39,8 @@
 ## Invariants
 
 - changedLinesはadditionsとdeletionsの合計。
+- netLinesはadditionsからdeletionsを引いた値で負数を許容する。
+- File分類はTest、Docs、Config、Code、Otherの優先順で一元判定する。
 - activeDaysは選択期間内のJST日付の重複を除いた数。
 - TodayはAsia/Tokyoの当日00:00から現在まで。
 - Scoreは分析上の参考値で、開発時間を表さない。

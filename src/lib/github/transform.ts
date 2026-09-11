@@ -1,7 +1,8 @@
-import type { CommitActivity, Repository } from "@/types/activity";
+import type { CommitActivity, CommitFileDetail, Repository } from "@/types/activity";
 
 type GitHubRepository = Record<string, unknown> & { owner: { login: string } };
-type GitHubCommit = Record<string, unknown> & { commit: { author: { date: string } | null; message: string }; stats?: { additions: number; deletions: number }; files?: unknown[] };
+type GitHubFile = { filename?: unknown; status?: unknown; additions?: unknown; deletions?: unknown; changes?: unknown };
+type GitHubCommit = Record<string, unknown> & { sha: string; commit: { author: { date: string } | null; message: string }; stats?: { additions: number; deletions: number }; files?: GitHubFile[] };
 
 export function toRepository(raw: GitHubRepository): Repository {
   return {
@@ -13,9 +14,13 @@ export function toRepository(raw: GitHubRepository): Repository {
 }
 
 export function toCommitActivity(raw: GitHubCommit, repository: string): CommitActivity {
+  const files: CommitFileDetail[] | undefined = raw.files?.map((file) => ({
+    filename: String(file.filename ?? ""), status: String(file.status ?? "changed"),
+    additions: Number(file.additions ?? 0), deletions: Number(file.deletions ?? 0), changes: Number(file.changes ?? 0),
+  }));
   return {
     sha: String(raw.sha), repository, authoredAt: raw.commit.author?.date ?? new Date(0).toISOString(),
     message: raw.commit.message.split("\n")[0], additions: raw.stats?.additions ?? 0,
-    deletions: raw.stats?.deletions ?? 0, changedFiles: raw.files?.length ?? 0, url: String(raw.html_url),
+    deletions: raw.stats?.deletions ?? 0, changedFiles: raw.files?.length ?? 0, files, url: String(raw.html_url),
   };
 }

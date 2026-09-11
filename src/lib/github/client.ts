@@ -13,11 +13,11 @@ export function getGitHubConfig() {
   return { token, username };
 }
 
-export async function githubFetch<T>(path: string): Promise<T> {
+export async function githubFetch<T>(path: string, revalidate: number | false = false): Promise<T> {
   const { token } = getGitHubConfig();
   const response = await fetch(`${API_URL}${path}`, {
     headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${token}`, "X-GitHub-Api-Version": "2022-11-28" },
-    next: { revalidate: 300 },
+    ...(revalidate === false ? { cache: "no-store" as const } : { next: { revalidate } }),
   });
   if (!response.ok) {
     const safeMessage = response.status === 401 ? "GitHub tokenを確認してください。" : `GitHub API request failed (${response.status})`;
