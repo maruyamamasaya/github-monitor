@@ -1,14 +1,15 @@
 # Roadmap
 
-## Now — v1.1
+## Now — v1.2
 
 - Developer Cockpit: 高密度KPI、WoW、share、30/90日trend、90日heatmap、Momentum、Focus、sortable matrix、commit size、曜日×時間、language activity。
+- Change & Anomaly Monitor: Development Pulse、severity付きRecent Changes、activity spike/drop、recent inactivity、large commit、commit burst、share/focus/time shift、streak、新規/再開activity。
 - Commit、changed lines、active days、Activity Score、30日daily chart。
 - Repository一覧と直近commit詳細。
 - Server-only GitHub API、cache、rate-limit表示、error/loading/empty state。
 - 集計・日付境界・API変換のUnit test。
 
-## Next — v1.2
+## Next — v1.3
 
 - 大規模Repository数での取得時間・rate limit計測とincremental cache改善。
 - Repository別trend切替、7日移動平均、変更file拡張子ベースlanguage集計。

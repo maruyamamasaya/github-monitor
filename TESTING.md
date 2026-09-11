@@ -24,7 +24,7 @@
 
 ## Unit Test
 
-VitestでActivity Score、期間境界（Asia/Tokyo）、集計、空データ、GitHub response変換、WoW、Momentum、Focus、commit size、heatmap、曜日×時間、paginationを検証する。
+VitestでActivity Score、期間境界（Asia/Tokyo）、集計、空データ、GitHub response変換、WoW、Momentum、Focus、commit size、heatmap、曜日×時間、pagination、spike/inactive/large commit/burst/share/time/streak系change detectionを検証する。
 
 ## Integration / E2E
 

@@ -52,6 +52,17 @@ export type FocusMetrics = { score: number; topShare: number; topThreeShare: num
 export type CommitSizeBucket = { key: "XS" | "S" | "M" | "L" | "XL"; label: string; count: number };
 export type DayHourCell = { day: number; slot: number; commits: number };
 export type LanguageActivity = { language: string; score: number; share: number };
+export type ChangeSeverity = "info" | "notable" | "strong";
+export type ChangeCategory = "repository" | "activity" | "commit" | "pattern";
+export type ChangeType = "activity-spike" | "activity-drop" | "inactive" | "large-commit" | "commit-burst" | "share-shift" | "focus-shift" | "time-shift" | "streak" | "new-activity" | "revived";
+export type ChangeEvent = { id: string; type: ChangeType; category: ChangeCategory; severity: ChangeSeverity; repository?: string; title: string; description: string; value?: number; baseline?: number; detectedAt: string };
+export type PulseLevel = "LOW" | "NORMAL" | "HIGH" | "VERY HIGH";
+export type PulseStatus = { level: PulseLevel; todayCommits: number; activeRepositories: number; changePercent: number | null; baseline: number };
+export type DayComparison = { label: string; today: number; yesterday: number; change: number | null };
+export type ShareShift = { repository: string; current: number; previous: number; points: number };
+export type TimeShare = { slot: number; recent: number; baseline: number; points: number };
+export type WeekHighlights = { increase?: { repository: string; change: number }; decrease?: { repository: string; change: number }; stable?: { repository: string; change: number }; newlyActive: string[] };
+export type AnomalyAnalysis = { pulse: PulseStatus; events: ChangeEvent[]; dayOverDay: DayComparison[]; shareShifts: ShareShift[]; timeShares: TimeShare[]; weekdayActivity: number[]; weekHighlights: WeekHighlights };
 export type CockpitAnalysis = {
   summaries: Record<PeriodKey, Metrics>;
   activeDays: Record<PeriodKey, number>;
@@ -63,6 +74,7 @@ export type CockpitAnalysis = {
   momentum: Record<string, Momentum>;
   weekComparison: ComparisonRow[];
   repositoryWeekChange: { repository: string; change: number | null }[];
+  anomaly: AnomalyAnalysis;
 };
 
 export type DashboardData = {

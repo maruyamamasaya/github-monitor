@@ -16,6 +16,7 @@ Next.js App RouterのServer ComponentがGitHub REST APIからデータを取得�
 
 - `src/lib/github`: 認証済みAPI client、Repository/commit/rate-limit取得、response変換。
 - `src/lib/analytics`: JST期間計算、集計、Activity Score、比較、Momentum、Focus、Heatmap、commit size。
+- `src/lib/analytics/anomaly`: 閾値、baseline、各種change detector、severity ranking、重複排除、template文生成。
 - `src/features/dashboard`: 高密度KPI、trend、share、heatmap、momentum、sortable matrix、distribution表示。
 - `src/app/repositories/[owner]/[repo]`: Repository詳細。
 
@@ -26,6 +27,7 @@ Next.js App RouterのServer ComponentがGitHub REST APIからデータを取得�
 3. 除外filter後、90日分の対象author commit一覧をRepositoryごとに100件単位でpaginationする。short pageまたは最大10 pageで停止する。
 4. commit detailを制限付き並列処理で一度だけ取得し、全指標へ再利用する。
 5. Client Componentは受け取ったmodelをToday/7/30 Daysで切り替える。Tokenは境界を越えない。
+6. Change Detectionも同じcommit modelからServer側で実行し、serializableなeventと比較値だけをClientへ渡す。追加APIは呼ばない。
 
 ## Caching and Failure Handling
 

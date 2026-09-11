@@ -1,2 +1,2 @@
 import Link from "next/link";
-export default function NotFound() { return <main className="shell min-h-screen grid place-items-center"><section className="panel p-8 text-center"><p className="eyebrow">404</p><h1 className="mt-3 text-2xl">Repositoryが見つかりません</h1><Link className="mt-6 inline-block text-[var(--green)]" href="/">Dashboardへ戻る →</Link></section></main>; }
+export default function NotFound() { return <main className="shell grid min-h-screen place-items-center"><section className="panel max-w-lg p-10 text-center"><p className="eyebrow">404 · not found</p><h1 className="mt-4 text-3xl font-semibold tracking-[-.03em]">Repositoryが見つかりません</h1><Link className="control chip mt-7 inline-flex text-[var(--accent)]" href="/">Signal roomへ戻る →</Link></section></main>; }

@@ -14,6 +14,8 @@
 - 12個の高密度KPI、Week-over-Week、Repository share、Focus Score
 - 30/90日trend、90日Activity heatmap、Repository Momentum
 - sortable Repository matrix、commit size、曜日×時間、language activity
+- AIなしのDevelopment Pulseとseverity付きRecent Changes
+- activity spike/drop、recent inactivity、large commit、burst、share/focus/time shift、streak、新規・再開検知
 
 ## Setup
 
