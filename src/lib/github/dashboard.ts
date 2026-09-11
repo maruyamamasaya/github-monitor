@@ -1,10 +1,12 @@
 import "server-only";
 import { cache } from "react";
 import { aggregateDaily, aggregateMetrics } from "@/lib/analytics/aggregate";
+import { analyzeCockpit } from "@/lib/analytics/cockpit";
 import { getJstStart } from "@/lib/analytics/date-range";
 import type { CommitActivity, DashboardData, RateLimit, Repository, RepositoryActivity } from "@/types/activity";
 import { getGitHubConfig, githubFetch, mapWithConcurrency } from "./client";
 import { toCommitActivity, toRepository } from "./transform";
+import { paginateCommits } from "./pagination";
 
 type RawRepo = Parameters<typeof toRepository>[0];
 type RawCommit = Parameters<typeof toCommitActivity>[0];
@@ -24,7 +26,7 @@ async function listRepositories(): Promise<Repository[]> {
 
 async function getCommits(repo: Repository, username: string, since: string): Promise<CommitActivity[]> {
   const owner = encodeURIComponent(repo.owner); const name = encodeURIComponent(repo.name);
-  const summaries = await githubFetch<RawCommit[]>(`/repos/${owner}/${name}/commits?author=${encodeURIComponent(username)}&since=${encodeURIComponent(since)}&per_page=100`);
+  const summaries = await paginateCommits((page) => githubFetch<RawCommit[]>(`/repos/${owner}/${name}/commits?author=${encodeURIComponent(username)}&since=${encodeURIComponent(since)}&per_page=100&page=${page}`));
   const details = await mapWithConcurrency(summaries, 6, (commit) => githubFetch<RawCommit>(`/repos/${owner}/${name}/commits/${encodeURIComponent(String(commit.sha))}`));
   return details.flatMap((result) => result.status === "fulfilled" ? [toCommitActivity(result.value, repo.fullName)] : []);
 }
@@ -32,7 +34,8 @@ async function getCommits(repo: Repository, username: string, since: string): Pr
 async function loadDashboardUncached(): Promise<DashboardData> {
   const { username } = getGitHubConfig(); const now = new Date();
   const repositories = await listRepositories();
-  const results = await mapWithConcurrency(repositories, 4, (repo) => getCommits(repo, username, getJstStart("month", now).toISOString()));
+  const since = new Date(getJstStart("month", now)); since.setUTCDate(since.getUTCDate() - 60);
+  const results = await mapWithConcurrency(repositories, 4, (repo) => getCommits(repo, username, since.toISOString()));
   const warnings: string[] = [];
   const activities: RepositoryActivity[] = repositories.map((repository, index) => {
     const result = results[index];
@@ -45,7 +48,7 @@ async function loadDashboardUncached(): Promise<DashboardData> {
     const rate = await githubFetch<{ rate: { remaining: number; limit: number; reset: number } }>("/rate_limit");
     rateLimit = { remaining: rate.rate.remaining, limit: rate.rate.limit, resetAt: new Date(rate.rate.reset * 1000).toISOString() };
   } catch { warnings.push("GitHub API rate limitを取得できませんでした。"); }
-  return { username, repositories: activities, dailyActivity: aggregateDaily(activities.flatMap((item) => item.commits), now), rateLimit, warnings, generatedAt: now.toISOString() };
+  return { username, repositories: activities, dailyActivity: aggregateDaily(activities.flatMap((item) => item.commits), now), analysis: analyzeCockpit(activities, now), rateLimit, warnings, generatedAt: now.toISOString() };
 }
 
 export const loadDashboard = cache(loadDashboardUncached);

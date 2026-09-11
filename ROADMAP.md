@@ -1,17 +1,17 @@
 # Roadmap
 
-## Now — v1
+## Now — v1.1
 
-- 複数Repository横断のToday/7/30 Days Dashboard。
+- Developer Cockpit: 高密度KPI、WoW、share、30/90日trend、90日heatmap、Momentum、Focus、sortable matrix、commit size、曜日×時間、language activity。
 - Commit、changed lines、active days、Activity Score、30日daily chart。
 - Repository一覧と直近commit詳細。
 - Server-only GitHub API、cache、rate-limit表示、error/loading/empty state。
 - 集計・日付境界・API変換のUnit test。
 
-## Next — v1.x
+## Next — v1.2
 
 - 大規模Repository数での取得時間・rate limit計測とincremental cache改善。
-- Repository別daily chart切替。
+- Repository別trend切替、7日移動平均、変更file拡張子ベースlanguage集計。
 - 除外設定のUIと永続化方式の検討。
 
 ## Later — v2+

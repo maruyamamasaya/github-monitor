@@ -42,13 +42,34 @@ export type RepositoryActivity = {
   metrics: Record<PeriodKey, Metrics>;
 };
 
-export type DailyActivity = { date: string; commits: number };
+export type DailyActivity = { date: string; commits: number; changedLines: number; changedFiles: number; score: number; activeRepositories: number };
 export type RateLimit = { remaining: number; limit: number; resetAt: string };
+
+export type MomentumBand = "HOT" | "STABLE" | "COOLING";
+export type Momentum = { value: number; band: MomentumBand };
+export type ComparisonRow = { key: string; label: string; current: number; previous: number; change: number | null; absolute: boolean };
+export type FocusMetrics = { score: number; topShare: number; topThreeShare: number; activeRepositories: number };
+export type CommitSizeBucket = { key: "XS" | "S" | "M" | "L" | "XL"; label: string; count: number };
+export type DayHourCell = { day: number; slot: number; commits: number };
+export type LanguageActivity = { language: string; score: number; share: number };
+export type CockpitAnalysis = {
+  summaries: Record<PeriodKey, Metrics>;
+  activeDays: Record<PeriodKey, number>;
+  streak: number;
+  focus: Record<PeriodKey, FocusMetrics>;
+  commitSizes: Record<PeriodKey, CommitSizeBucket[]>;
+  dayHour: Record<PeriodKey, DayHourCell[]>;
+  languages: Record<PeriodKey, LanguageActivity[]>;
+  momentum: Record<string, Momentum>;
+  weekComparison: ComparisonRow[];
+  repositoryWeekChange: { repository: string; change: number | null }[];
+};
 
 export type DashboardData = {
   username: string;
   repositories: RepositoryActivity[];
   dailyActivity: DailyActivity[];
+  analysis: CockpitAnalysis;
   rateLimit: RateLimit | null;
   warnings: string[];
   generatedAt: string;

@@ -11,6 +11,9 @@
 - Private Repository対応（Token権限内）
 - archived / fork / 任意Repositoryの除外
 - GitHub API rate limit、loading、error、empty state
+- 12個の高密度KPI、Week-over-Week、Repository share、Focus Score
+- 30/90日trend、90日Activity heatmap、Repository Momentum
+- sortable Repository matrix、commit size、曜日×時間、language activity
 
 ## Setup
 
@@ -39,7 +42,7 @@ fine-grained Personal Access Tokenには、対象Repositoryのread-only `Metadat
 npm run dev
 ```
 
-ブラウザで `http://localhost:3000` を開きます。GitHub responseはServer側で5分cacheされます。
+ブラウザで `http://localhost:3000` を開きます。GitHub responseはServer側で5分cacheされます。最大90日を100件単位でpaginationし、取得したcommit detailを全分析へ再利用します。
 
 ## Validation
 

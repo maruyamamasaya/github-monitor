@@ -2,18 +2,19 @@
 
 ## Current Phase
 
-v1 complete / ready for local GitHub connection
+v1.1 Monitoring Cockpit complete
 
 ## Current State
 
-Next.js Dashboard、GitHub API連携、期間別集計、Repository詳細、cache、rate-limit表示、error/loading/empty state、Unit Testを実装済み。
+v1機能を維持し、高密度Monitoring Cockpit、90日分析、paginationを実装・検証済み。
 
 ## Working
 
 - Today / 7 Days / 30 DaysのDashboard切替。
 - Repository別Activity Score、30日daily chart、commit detail。
 - Server-only GitHub token、5分cache、取得並列数制限。
-- lint、typecheck、10 Unit Tests、production buildが成功。
+- WoW、share、trend、heatmap、Momentum、Focus、sortable matrix、commit size、曜日×時間、language activity。
+- lint、typecheck、18 Unit Tests、production build、実Token browser smoke testが成功。
 
 ## In Progress
 
@@ -22,7 +23,7 @@ Next.js Dashboard、GitHub API連携、期間別集計、Repository詳細、cach
 ## Known Issues
 
 - 実TokenによるGitHub live smoke testは利用者の`.env.local`設定後に必要。
-- GitHub API仕様上、1 Repositoryで30日100件を超えるcommitはv1では先頭100件まで。
+- API防御のため1 Repositoryあたり90日最大1,000 commitを取得する。
 
 ## Immediate Next
 

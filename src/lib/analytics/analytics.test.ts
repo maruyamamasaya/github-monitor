@@ -31,9 +31,9 @@ describe("aggregation", () => {
     expect(result).toMatchObject({ commits: 2, activeDays: 1, additions: 13, deletions: 3, changedLines: 16, changedFiles: 3 });
   });
   it("returns empty metrics", () => expect(aggregateMetrics([], "month", now)).toEqual({ commits: 0, activeDays: 0, additions: 0, deletions: 0, changedLines: 0, changedFiles: 0, score: 0 }));
-  it("creates a zero-filled 30-day series", () => {
+  it("creates a zero-filled 90-day series", () => {
     const result = aggregateDaily([commit("2026-09-10T15:00:00.000Z")], now);
-    expect(result).toHaveLength(30);
-    expect(result.at(-1)).toEqual({ date: "2026-09-11", commits: 1 });
+    expect(result).toHaveLength(90);
+    expect(result.at(-1)).toMatchObject({ date: "2026-09-11", commits: 1, changedLines: 12, changedFiles: 1, activeRepositories: 1 });
   });
 });

@@ -13,10 +13,16 @@ export function aggregateMetrics(commits: CommitActivity[], period: PeriodKey, n
 }
 
 export function aggregateDaily(commits: CommitActivity[], now = new Date()): DailyActivity[] {
-  const counts = new Map<string, number>();
+  const byDay = new Map<string, CommitActivity[]>();
   for (const commit of commits) {
     const key = toJstDateKey(commit.authoredAt);
-    counts.set(key, (counts.get(key) ?? 0) + 1);
+    byDay.set(key, [...(byDay.get(key) ?? []), commit]);
   }
-  return getLastJstDateKeys(30, now).map((date) => ({ date, commits: counts.get(date) ?? 0 }));
+  return getLastJstDateKeys(90, now).map((date) => {
+    const items = byDay.get(date) ?? [];
+    const changedLines = items.reduce((sum, item) => sum + item.additions + item.deletions, 0);
+    const changedFiles = items.reduce((sum, item) => sum + item.changedFiles, 0);
+    const repositories = new Set(items.map((item) => item.repository));
+    return { date, commits: items.length, changedLines, changedFiles, score: calculateActivityScore({ commits: items.length, activeDays: items.length ? 1 : 0, changedLines, changedFiles }), activeRepositories: repositories.size };
+  });
 }
