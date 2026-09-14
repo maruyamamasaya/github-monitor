@@ -22,6 +22,7 @@ v1.2のAPI効率を維持し、Development Snapshot、Meaningful LOC、file comp
 - 新規取得commitの既存detail responseからfile status/statsを段階保存し、追加APIや過去detailの再取得を行わない。
 - 旧cacheは直近commitから1時間ごとに最大5件だけfile detailをbackfillする。rate limit 1,000未満では停止し、200 request budget内で実行する。
 - Developer Infoで通常detail取得とFile Backfilledを分離表示する。
+- DashboardとRepository詳細の日本語表示を全セクションへ適用し、Asia/Tokyo基準の日付に曜日を表示する。
 
 ## In Progress
 
