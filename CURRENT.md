@@ -17,9 +17,11 @@ v1.2のAPI効率を維持し、Development Snapshot、Meaningful LOC、file comp
 - 共通デザイントークン、優先度に沿った情報階層、responsive layout、reduced-motion対応。
 - DashboardとRepository詳細で日本語／英語、およびライト／ダークテーマを切り替え可能。設定はbrowserへ保存し、未設定時はOS themeを使う。
 - SHA単位detail再利用、200 request budget、low-rate guard、Developer Info metrics。
-- lint、typecheck、32 Unit Tests、production build、実Token browser smoke testが成功。
+- lint、typecheck、61 Unit Tests、production build、実Token browser smoke testが成功。
 - Today / 7 Days / 30 DaysのDevelopment Snapshot、Density内訳と前期間比較、file detail coverageを表示。
 - 新規取得commitの既存detail responseからfile status/statsを段階保存し、追加APIや過去detailの再取得を行わない。
+- 旧cacheは直近commitから1時間ごとに最大5件だけfile detailをbackfillする。rate limit 1,000未満では停止し、200 request budget内で実行する。
+- Developer Infoで通常detail取得とFile Backfilledを分離表示する。
 
 ## In Progress
 
@@ -30,9 +32,9 @@ v1.2のAPI効率を維持し、Development Snapshot、Meaningful LOC、file comp
 - 31 Repository cold実測（旧500 budget）は502 requests / detail成功180 / 46.7秒でSecondary Rate Limitを確認し、200 budget・実効並列2へ調整済み。
 - 31 Repository warm実測は2 requests / cache hit 853 / detail 0 / 2.9秒。
 - JSON storeは単一Node processのローカル利用向け。複数instance deploymentでは共有DBへの置換が必要。
-- 旧cache commitはfile detailを持たないためTest / Docs / New Filesはcoverage付き部分値、または未取得表示になる。
+- 旧cache commitのTest / Docs / New Filesはcoverage付き部分値、または未取得表示から始まり、低負荷backfillで段階的に充実する。
 - v1.3実Token warm syncは31 Repositoryで2 requests、853 cache hits、detail fetch 0、約4.3秒。browser console errorなし。
 
 ## Immediate Next
 
-- 新しいcommitの蓄積に伴うfile detail coverageをDeveloper InfoとSnapshotで観測する。
+- file detail coverageと1時間5件backfillのAPI影響を通常運用で観測する。

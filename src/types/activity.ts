@@ -57,7 +57,7 @@ export type RepositoryActivity = {
 
 export type DailyActivity = { date: string; commits: number; changedLines: number; changedFiles: number; score: number; activeRepositories: number };
 export type RateLimit = { remaining: number; limit: number; resetAt: string };
-export type ApiMetrics = { apiRequests: number; cacheHits: number; cacheHitRate: number; repositories: number; commitsLoaded: number; newCommitsFetched: number; commitDetailsFetched: number; syncDurationMs: number; syncMode: "cold" | "warm"; budgetRemaining: number };
+export type ApiMetrics = { apiRequests: number; cacheHits: number; cacheHitRate: number; repositories: number; commitsLoaded: number; newCommitsFetched: number; commitDetailsFetched: number; fileDetailsBackfilled: number; syncDurationMs: number; syncMode: "cold" | "warm"; budgetRemaining: number };
 
 export type MomentumBand = "HOT" | "STABLE" | "COOLING";
 export type Momentum = { value: number; band: MomentumBand };

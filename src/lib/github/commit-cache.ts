@@ -4,7 +4,7 @@ import path from "node:path";
 import type { CommitActivity } from "@/types/activity";
 
 export type CachedRepository = { commits: Record<string, CommitActivity>; lastSyncedAt: string | null; lastCheckedAt: string | null };
-export type CommitCache = { version: 1; repositories: Record<string, CachedRepository> };
+export type CommitCache = { version: 1; repositories: Record<string, CachedRepository>; lastFileDetailBackfillAt?: string | null };
 export type CommitCacheStore = { read(): Promise<CommitCache>; write(cache: CommitCache): Promise<void> };
 
 const empty = (): CommitCache => ({ version: 1, repositories: {} });

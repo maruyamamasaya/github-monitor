@@ -1,10 +1,10 @@
 import type { CommitActivity, Repository } from "@/types/activity";
 import type { CachedRepository, CommitCacheStore } from "./commit-cache";
-import { ACTIVE_SYNC_TTL_MS, COMMIT_DETAIL_CONCURRENCY, HISTORY_DAYS, INACTIVE_AFTER_DAYS, INACTIVE_SYNC_TTL_MS, LOW_RATE_LIMIT_REMAINING, MAX_REQUESTS_PER_SYNC, REPOSITORY_CONCURRENCY, SYNC_OVERLAP_DAYS } from "./sync-config";
+import { ACTIVE_SYNC_TTL_MS, COMMIT_DETAIL_CONCURRENCY, FILE_DETAIL_BACKFILL_BATCH, FILE_DETAIL_BACKFILL_MIN_REMAINING, FILE_DETAIL_BACKFILL_TTL_MS, HISTORY_DAYS, INACTIVE_AFTER_DAYS, INACTIVE_SYNC_TTL_MS, LOW_RATE_LIMIT_REMAINING, MAX_REQUESTS_PER_SYNC, REPOSITORY_CONCURRENCY, SYNC_OVERLAP_DAYS } from "./sync-config";
 
 export type CommitSummary = { sha: string };
 export type SyncApi = { list(repo: Repository, since: string): Promise<{ items: CommitSummary[]; requests: number }>; detail(repo: Repository, summary: CommitSummary): Promise<CommitActivity> };
-export type SyncMetrics = { apiRequests: number; cacheHits: number; newCommitsFetched: number; commitDetailsFetched: number; budgetRemaining: number; cold: boolean };
+export type SyncMetrics = { apiRequests: number; cacheHits: number; newCommitsFetched: number; commitDetailsFetched: number; fileDetailsBackfilled: number; budgetRemaining: number; cold: boolean };
 
 const daysBefore = (date: Date, days: number) => new Date(date.getTime() - days * 86_400_000);
 async function eachWithConcurrency<T>(items: T[], limit: number, task: (item: T) => Promise<void>) {
@@ -16,7 +16,7 @@ async function eachWithConcurrency<T>(items: T[], limit: number, task: (item: T)
 export async function syncCommits(repositories: Repository[], rateRemaining: number | null, api: SyncApi, store: CommitCacheStore, now = new Date(), maxRequests = MAX_REQUESTS_PER_SYNC) {
   const cache = await store.read();
   const cold = Object.keys(cache.repositories).length === 0;
-  const metrics: SyncMetrics = { apiRequests: 0, cacheHits: 0, newCommitsFetched: 0, commitDetailsFetched: 0, budgetRemaining: maxRequests, cold };
+  const metrics: SyncMetrics = { apiRequests: 0, cacheHits: 0, newCommitsFetched: 0, commitDetailsFetched: 0, fileDetailsBackfilled: 0, budgetRemaining: maxRequests, cold };
   const warnings: string[] = [];
   let deferredByBudget = false;
   let detailFailures = 0;
@@ -62,6 +62,19 @@ export async function syncCommits(repositories: Repository[], rateRemaining: num
     const cutoff = daysBefore(now, HISTORY_DAYS).getTime();
     current.commits = Object.fromEntries(Object.entries(current.commits).filter(([, commit]) => new Date(commit.authoredAt).getTime() >= cutoff));
   });
+  const lastBackfill = cache.lastFileDetailBackfillAt ? new Date(cache.lastFileDetailBackfillAt).getTime() : 0;
+  const canBackfill = !cold && !lowRate && (rateRemaining === null || rateRemaining >= FILE_DETAIL_BACKFILL_MIN_REMAINING) && now.getTime() - lastBackfill >= FILE_DETAIL_BACKFILL_TTL_MS;
+  if (canBackfill && metrics.budgetRemaining > 0) {
+    const repositoryByName = new Map(repositories.map((repo) => [repo.fullName, repo]));
+    const candidates = Object.entries(cache.repositories).filter(([repository]) => repositoryByName.has(repository)).flatMap(([repository, cachedRepo]) => Object.values(cachedRepo.commits).filter((commit) => !Array.isArray(commit.files)).map((commit) => ({ repository, commit }))).sort((a, b) => new Date(b.commit.authoredAt).getTime() - new Date(a.commit.authoredAt).getTime()).slice(0, Math.min(FILE_DETAIL_BACKFILL_BATCH, metrics.budgetRemaining));
+    cache.lastFileDetailBackfillAt = now.toISOString();
+    await eachWithConcurrency(candidates, REPOSITORY_CONCURRENCY, async ({ repository, commit }) => {
+      const repo = repositoryByName.get(repository); if (!repo) return;
+      metrics.apiRequests++; metrics.budgetRemaining--;
+      try { cache.repositories[repository].commits[commit.sha] = await api.detail(repo, { sha: commit.sha }); metrics.commitDetailsFetched++; metrics.fileDetailsBackfilled++; }
+      catch { detailFailures++; }
+    });
+  }
   if (deferredByBudget) warnings.push("API request budgetに達したためcommit detail取得を次回へ延期しました。");
   if (detailFailures) warnings.push(`${detailFailures}件のcommit detail取得に失敗したため次回同期で再試行します。`);
   if (lowRate) warnings.push(`GitHub rate limit remainingが${LOW_RATE_LIMIT_REMAINING}未満のためcached dataを使用しました。`);

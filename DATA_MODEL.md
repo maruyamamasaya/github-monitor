@@ -22,4 +22,4 @@ GitHubを正本とし、`.next/cache/github-monitor/commits.json`へversioned JS
 
 ## Lifecycle and Retention
 
-commitは90日を保持し、通常同期時に期限外を削除する。初回同期は90日、通常同期は前回時刻から3日戻したoverlap windowでforce-push/rebase由来の遅延を吸収する。
+commitは90日を保持し、通常同期時に期限外を削除する。初回同期は90日、通常同期は前回時刻から3日戻したoverlap windowでforce-push/rebase由来の遅延を吸収する。cache rootの`lastFileDetailBackfillAt`で旧commit detail補完の1時間cooldownを永続化する。

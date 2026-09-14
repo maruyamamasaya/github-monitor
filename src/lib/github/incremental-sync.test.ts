@@ -11,7 +11,7 @@ function memoryStore(initial?: CommitCache) {
   const store: CommitCacheStore = { read: vi.fn(async () => structuredClone(value)), write: vi.fn(async (next) => { value = structuredClone(next); }) };
   return { store, value: () => value };
 }
-const cached = (lastSyncedAt = "2026-09-11T05:00:00.000Z", lastCheckedAt = "2026-09-11T05:00:00.000Z"): CommitCache => ({ version: 1, repositories: { "octo/app": { commits: { old: commit("old") }, lastSyncedAt, lastCheckedAt } } });
+const cached = (lastSyncedAt = "2026-09-11T05:00:00.000Z", lastCheckedAt = "2026-09-11T05:00:00.000Z"): CommitCache => ({ version: 1, lastFileDetailBackfillAt: now.toISOString(), repositories: { "octo/app": { commits: { old: commit("old") }, lastSyncedAt, lastCheckedAt } } });
 
 describe("incremental commit sync", () => {
   it("performs a cold 90-day sync and removes duplicate SHAs", async () => {
@@ -66,5 +66,26 @@ describe("incremental commit sync", () => {
     const memory = memoryStore(cached(undefined, "2026-09-01T00:00:00.000Z"));
     const result = await syncCommits([repo()], 5000, { list: async () => { throw new Error("network"); }, detail: vi.fn() }, memory.store, now);
     expect(result.commitsByRepository["octo/app"]).toHaveLength(1); expect(result.warnings[0]).toContain("cache");
+  });
+
+  it("backfills at most five recent cached commits without listing again", async () => {
+    const initial = cached(undefined, "2026-09-11T05:55:00.000Z");
+    initial.lastFileDetailBackfillAt = "2026-09-11T04:00:00.000Z";
+    initial.repositories["octo/app"].commits = Object.fromEntries(Array.from({ length: 7 }, (_, index) => [`sha-${index}`, { ...commit(`sha-${index}`), authoredAt: `2026-09-11T0${index}:00:00.000Z` }]));
+    const memory = memoryStore(initial); const list = vi.fn();
+    const detail = vi.fn(async (_repo: Repository, item: { sha: string }) => ({ ...commit(item.sha), files: [] }));
+    const result = await syncCommits([repo()], 5000, { list, detail }, memory.store, now);
+    expect(list).not.toHaveBeenCalled(); expect(detail).toHaveBeenCalledTimes(5);
+    expect(result.metrics).toMatchObject({ apiRequests: 5, commitDetailsFetched: 5, fileDetailsBackfilled: 5 });
+    expect(Object.values(memory.value().repositories["octo/app"].commits).filter((item) => Array.isArray(item.files))).toHaveLength(5);
+  });
+
+  it("skips backfill during its cooldown or below the conservative rate threshold", async () => {
+    const recent = memoryStore(cached()); const detail = vi.fn();
+    await syncCommits([repo()], 5000, { list: vi.fn(), detail }, recent.store, now);
+    expect(detail).not.toHaveBeenCalled();
+    const old = cached(); old.lastFileDetailBackfillAt = "2026-09-11T04:00:00.000Z";
+    await syncCommits([repo()], 999, { list: vi.fn(), detail }, memoryStore(old).store, now);
+    expect(detail).not.toHaveBeenCalled();
   });
 });
