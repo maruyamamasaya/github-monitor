@@ -90,6 +90,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
   const [period, setPeriod] = useState<PeriodKey>("month");
   const [trendMetric, setTrendMetric] = useState<TrendMetric>("commits");
   const [trendDays, setTrendDays] = useState<30 | 90>(30);
+  const trendData = useMemo(() => data.dailyActivity.slice(-trendDays), [data.dailyActivity, trendDays]);
   const [sort, setSort] = useState<SortKey>("score");
   const [changeFilter, setChangeFilter] = useState<"all" | ChangeCategory>("all");
   const [copied, setCopied] = useState(false);
@@ -149,7 +150,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
       <div className="chip flex w-fit rounded-[10px] p-1" aria-label={text.period}>{localizedPeriods.map((item) => <button key={item.key} onClick={() => setPeriod(item.key)} aria-pressed={period === item.key} data-active={period === item.key} className="control">{item.label}</button>)}</div>
     </header>
 
-    {data.warnings.length > 0 && <div className="warning mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">{text.partial} · {data.warnings.length} {text.failed}</div>}
+    {data.warnings.length > 0 && <div className="warning mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">{text.partial} · {data.warnings.length} {locale === "ja" ? "件の警告" : "warnings"}<ul className="mt-2 list-disc pl-5">{data.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul></div>}
 
     <section className="enter enter-delay-1 mt-8">
       <SectionHeading index="00" title={locale === "ja" ? "開発状況サマリー" : "Development Snapshot"} sub={locale === "ja" ? "活動量と継続性の目安です。能力や品質を評価するものではありません" : "Activity volume and density — not ability or quality"} />
@@ -216,7 +217,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
       <div className="grid gap-4 xl:grid-cols-[1.55fr_.65fr]">
         <Panel title={text.trajectory} sub={`${trendDays} ${locale === "ja" ? "日" : "days"}`}>
           <div className="mb-5 flex flex-wrap gap-1.5">{(["commits", "changedLines", "changedFiles", "score"] as TrendMetric[]).map((metric) => <button key={metric} onClick={() => setTrendMetric(metric)} data-active={trendMetric === metric} className="control chip min-h-0 py-1.5">{{ commits: locale === "ja" ? "コミット" : "Commits", changedLines: locale === "ja" ? "行数" : "Lines", changedFiles: locale === "ja" ? "ファイル" : "Files", score: locale === "ja" ? "スコア" : "Score" }[metric]}</button>)}<span className="ml-auto flex gap-1">{([30, 90] as const).map((daysCount) => <button key={daysCount} onClick={() => setTrendDays(daysCount)} data-active={trendDays === daysCount} className="control chip min-h-0 py-1.5">{daysCount}{locale === "ja" ? "日" : "D"}</button>)}</span></div>
-          <DailyChart data={data.dailyActivity.slice(-trendDays)} metric={trendMetric} />
+          <DailyChart data={trendData} metric={trendMetric} locale={locale} />
         </Panel>
         <Panel title={text.repoShare} sub={text.activityScore}>
           <div className="mb-6 flex h-2 overflow-hidden rounded-full bg-white/[.04]">{shares.map((share, index) => <div key={share.label} title={`${share.label} ${share.text}`} style={{ width: share.text, background: ["var(--accent)", "var(--cyan)", "var(--violet)", "var(--orange)", "#5f7182", "#3b4652"][index] }} />)}</div>

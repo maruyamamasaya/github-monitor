@@ -25,13 +25,15 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     const initialTheme: Theme = savedTheme === "light" || savedTheme === "dark"
       ? savedTheme
       : window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
-    const frame = requestAnimationFrame(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
       setLocaleState(initialLocale);
       setThemeState(initialTheme);
       document.documentElement.lang = initialLocale;
       document.documentElement.dataset.theme = initialTheme;
     });
-    return () => cancelAnimationFrame(frame);
+    return () => { cancelled = true; };
   }, []);
 
   const setLocale = (next: Locale) => {
@@ -61,8 +63,8 @@ function PreferencesControls() {
   const { locale, theme, setLocale, setTheme } = usePreferences();
   const isJapanese = locale === "ja";
   return <aside className="preferences" aria-label={isJapanese ? "表示設定" : "Display settings"}>
-    <button className="preference-button" type="button" onClick={() => setLocale(isJapanese ? "en" : "ja")} aria-label={isJapanese ? "Switch to English" : "日本語に切り替える"}>
-      <span aria-hidden="true">文</span><span>{isJapanese ? "EN" : "日本語"}</span>
+    <button className="preference-button" type="button" onClick={() => setLocale(isJapanese ? "en" : "ja")} aria-label={isJapanese ? "英語に切り替える" : "Switch to Japanese"}>
+      <span aria-hidden="true">文</span><span>{isJapanese ? "English" : "日本語"}</span>
     </button>
     <button className="preference-button" type="button" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label={theme === "dark" ? (isJapanese ? "ライトモードに切り替える" : "Switch to light mode") : (isJapanese ? "ダークモードに切り替える" : "Switch to dark mode")}>
       <span aria-hidden="true">{theme === "dark" ? "☀" : "☾"}</span><span>{theme === "dark" ? (isJapanese ? "ライト" : "Light") : (isJapanese ? "ダーク" : "Dark")}</span>

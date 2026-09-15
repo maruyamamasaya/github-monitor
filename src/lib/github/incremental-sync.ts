@@ -40,7 +40,7 @@ export async function syncCommits(repositories: Repository[], rateRemaining: num
       metrics.apiRequests += result.requests;
       metrics.budgetRemaining -= result.requests;
     }
-    catch { warnings.push(`${repo.fullName} の差分同期に失敗したためcacheを表示しています。`); return; }
+    catch (error) { const status = error instanceof Error && "status" in error && typeof error.status === "number" ? error.status : null; warnings.push(`${repo.fullName} の差分同期に失敗したためcacheを表示しています。${status !== null ? ` (GitHub API ${status})` : ""}`); return; }
     const unique = [...new Map(summaries.map((item) => [item.sha, item])).values()];
     const unknown = unique.filter((summary) => {
       if (current.commits[summary.sha]) { metrics.cacheHits++; return false; }

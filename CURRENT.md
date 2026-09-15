@@ -23,6 +23,8 @@ v1.2のAPI効率を維持し、Development Snapshot、Meaningful LOC、file comp
 - 旧cacheは直近commitから1時間ごとに最大5件だけfile detailをbackfillする。rate limit 1,000未満では停止し、200 request budget内で実行する。
 - Developer Infoで通常detail取得とFile Backfilledを分離表示する。
 - DashboardとRepository詳細の日本語表示を全セクションへ適用し、Asia/Tokyo基準の日付に曜日を表示する。
+- 言語設定の復元を描画フレーム待ちからmicrotaskへ変更し、警告表示を実際の警告内容に合わせた。Trend chartの期間データと描画を再利用する。
+- ローカル起動はNext.js既定の3000を使用し、Local Dev Hubからは起動プロセスの`PORT`または`--port`で指定可能。他のローカルアプリへのURL参照はない。
 
 ## In Progress
 

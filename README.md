@@ -46,6 +46,23 @@ npm run dev
 
 ブラウザで `http://localhost:3000` を開きます。GitHub responseはServer側で5分cacheされます。最大90日を100件単位でpaginationし、取得したcommit detailを全分析へ再利用します。
 
+### Local Dev Hubからの起動
+
+| 設定 | 既定値 | 用途 |
+| --- | --- | --- |
+| `PORT` | `3000` | このアプリのNext.js開発サーバーが待ち受けるポート |
+
+他のローカルアプリを参照するURLやポートは現在ありません。外部接続先はServer側のGitHub REST API（`https://api.github.com`）だけで、Local Dev Hubから接続先URLを渡す必要はありません。GitHubの認証設定は従来どおり`.env.local`で管理します。
+
+Local Dev Hubは起動プロセスの環境変数`PORT`を渡してください。Next.jsはサーバー起動時にこれを読み取るため、`.env.local`内の`PORT`は使えません。例えばPowerShellでは次のように起動できます。
+
+```powershell
+$env:PORT = '3100'
+npm run dev
+```
+
+起動引数を使う場合は`npm run dev -- --port 3100`です。どちらも指定しなければ従来どおり3000で起動します。`npm run start`も同じ`PORT`または`--port`を受け取れます。
+
 ## Validation
 
 ```bash
