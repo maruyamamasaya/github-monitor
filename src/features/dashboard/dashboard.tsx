@@ -78,7 +78,7 @@ function MetricCard({ label, value, featured = false }: { label: string; value: 
   </div>;
 }
 
-export function Dashboard({ data }: { data: DashboardData }) {
+export function Dashboard({ data, initialPeriod }: { data: DashboardData; initialPeriod: PeriodKey }) {
   const { locale } = usePreferences();
   const text = ui[locale];
   const localizedPeriods: { key: PeriodKey; label: string }[] = periods.map((item, index) => ({ ...item, label: locale === "ja" ? ["今日", "7日間", "30日間"][index] : item.label }));
@@ -87,7 +87,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
   const dateFormatter = useMemo(() => new Intl.DateTimeFormat(locale === "ja" ? "ja-JP" : "en-US", { timeZone: "Asia/Tokyo", month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" }), [locale]);
   const dayFormatter = useMemo(() => new Intl.DateTimeFormat(locale === "ja" ? "ja-JP" : "en-US", { timeZone: "Asia/Tokyo", year: "numeric", month: "short", day: "numeric", weekday: "short" }), [locale]);
   const dateFmt = (value: string | null) => value ? dateFormatter.format(new Date(value)) : "—";
-  const [period, setPeriod] = useState<PeriodKey>("month");
+  const [period, setPeriod] = useState<PeriodKey>(initialPeriod);
   const [trendMetric, setTrendMetric] = useState<TrendMetric>("commits");
   const [trendDays, setTrendDays] = useState<30 | 90>(30);
   const trendData = useMemo(() => data.dailyActivity.slice(-trendDays), [data.dailyActivity, trendDays]);
@@ -147,7 +147,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
         <h1 className="max-w-3xl text-3xl font-semibold leading-none tracking-[-.055em] sm:text-5xl">{locale === "ja" ? <>開発状況<br className="sm:hidden" />ダッシュボード</> : <>Development<br className="sm:hidden" /> signal room</>}</h1>
         <p className="muted mt-4 max-w-xl text-sm sm:text-base">{text.tagline}</p>
       </div>
-      <div className="chip flex w-fit rounded-[10px] p-1" aria-label={text.period}>{localizedPeriods.map((item) => <button key={item.key} onClick={() => setPeriod(item.key)} aria-pressed={period === item.key} data-active={period === item.key} className="control">{item.label}</button>)}</div>
+      <nav className="chip flex w-fit rounded-[10px] p-1" aria-label={text.period}>{localizedPeriods.map((item) => <a key={item.key} href={`/?period=${item.key}`} onClick={() => setPeriod(item.key)} aria-current={period === item.key ? "page" : undefined} data-active={period === item.key} className="control">{item.label}</a>)}</nav>
     </header>
 
     {data.warnings.length > 0 && <div className="warning mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">{text.partial} · {data.warnings.length} {locale === "ja" ? "件の警告" : "warnings"}<ul className="mt-2 list-disc pl-5">{data.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul></div>}

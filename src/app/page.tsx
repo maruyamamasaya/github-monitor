@@ -1,10 +1,13 @@
 import { Dashboard } from "@/features/dashboard/dashboard";
 import { loadDashboard } from "@/lib/github/dashboard";
 import { GitHubApiError } from "@/lib/github/client";
+import type { PeriodKey } from "@/types/activity";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
+  const selectedPeriod = (await searchParams).period;
+  const period: PeriodKey = selectedPeriod === "today" || selectedPeriod === "week" ? selectedPeriod : "month";
   let data;
   let loadError: unknown;
   try {
@@ -33,5 +36,5 @@ export default async function HomePage() {
     ...data,
     repositories: data.repositories.map((item) => ({ ...item, commits: [] })),
   };
-  return <Dashboard data={clientData} />;
+  return <Dashboard data={clientData} initialPeriod={period} />;
 }

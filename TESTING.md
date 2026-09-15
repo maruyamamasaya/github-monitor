@@ -37,7 +37,7 @@ GitHub API 409時の失敗記録、24時間の再試行間隔、成功時の記�
 ## Manual Verification
 
 - Token未設定、無効Token、空Repository、部分API失敗。
-- Today/7/30切替、GitHub link、狭いviewport。
+- Today/7/30切替と再読み込み後の選択、Trend chartで今日の日付が見えること、GitHub link、狭いviewport。
 - rate-limit表示とprivate metadataの不要な露出がないこと。
 
 ## Commands

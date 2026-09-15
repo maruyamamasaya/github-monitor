@@ -10,7 +10,7 @@ v1.2のAPI効率を維持し、Development Snapshot、Meaningful LOC、file comp
 
 ## Working
 
-- Today / 7 Days / 30 DaysのDashboard切替。
+- URLの`period`で保持するToday / 7 Days / 30 DaysのDashboard切替。
 - Repository別Activity Score、30日daily chart、commit detail。
 - Server-only GitHub token、90日initial sync、3日overlap付きincremental sync、active 30分/inactive 24時間cache。
 - GitHub API 409のRepositoryは一時的に集計対象から外し、失敗一覧をDeveloper Infoに保持・表示する。24時間後の再試行に成功すると自動復帰する。
@@ -25,6 +25,7 @@ v1.2のAPI効率を維持し、Development Snapshot、Meaningful LOC、file comp
 - Developer Infoで通常detail取得とFile Backfilledを分離表示する。
 - DashboardとRepository詳細の日本語表示を全セクションへ適用し、Asia/Tokyo基準の日付に曜日を表示する。
 - 言語設定の復元を描画フレーム待ちからmicrotaskへ変更し、警告表示を実際の警告内容に合わせた。Trend chartの期間データと描画を再利用する。
+- Trend chartの日付ラベルは右端の今日から間隔を空けて配置し、重なりを避ける。
 - ローカル起動はNext.js既定の3000を使用し、Local Dev Hubからは起動プロセスの`PORT`または`--port`で指定可能。他のローカルアプリへのURL参照はない。
 - 画面の配色に合わせた開発活動マークをブラウザのアイコンに設定。
 

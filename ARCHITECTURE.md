@@ -27,7 +27,7 @@ Next.js App RouterのServer ComponentがGitHub REST APIからデータを差分�
 2. GitHub APIからRepository一覧をpagination付きで取得する。
 3. 初回は90日、通常は前回同期から3日のoverlapを含む対象author commit一覧をRepositoryごとにpaginationする。
 4. 未知SHAのcommit detailだけを制限付き並列処理で取得し、file status/statsを含めSHA単位の永続cacheへ保存する。既知SHAは全指標とRepository詳細で再利用し、過去detailのbackfillはしない。
-5. Client Componentは受け取ったmodelをToday/7/30 Daysで切り替える。Tokenは境界を越えない。
+5. Dashboardの期間はURLの`period`で保持し、Server render時の選択をClient Componentへ渡す。Tokenは境界を越えない。
 6. Change DetectionとDevelopment分析も同じcommit modelからServer側で実行し、serializableな結果だけをClientへ渡す。追加APIは呼ばない。
 
 ## Caching and Failure Handling
