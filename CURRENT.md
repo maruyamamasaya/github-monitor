@@ -12,10 +12,11 @@ v1.2のAPI効率を維持し、Development Snapshot、Meaningful LOC、file comp
 
 - Today / 7 Days / 30 DaysのDashboard切替。
 - Repository別Activity Score、30日daily chart、commit detail。
-- Server-only GitHub token、90日initial sync、3日overlap付きincremental sync、active 10分/inactive 24時間cache。
+- Server-only GitHub token、90日initial sync、3日overlap付きincremental sync、active 30分/inactive 24時間cache。
+- GitHub API 409のRepositoryは一時的に集計対象から外し、失敗一覧をDeveloper Infoに保持・表示する。24時間後の再試行に成功すると自動復帰する。
 - WoW、share、trend、heatmap、Momentum、Focus、sortable matrix、commit size、曜日×時間、language activity。
 - 共通デザイントークン、優先度に沿った情報階層、responsive layout、reduced-motion対応。
-- DashboardとRepository詳細で日本語／英語、およびライト／ダークテーマを切り替え可能。設定はbrowserへ保存し、未設定時はOS themeを使う。
+- DashboardとRepository詳細で日本語／英語、およびライト／ダークテーマを切り替え可能。言語はcookieへ保存し、初期表示は日本語。テーマはbrowserへ保存し、未設定時はOS themeを使う。
 - SHA単位detail再利用、200 request budget、low-rate guard、Developer Info metrics。
 - lint、typecheck、61 Unit Tests、production build、実Token browser smoke testが成功。
 - Today / 7 Days / 30 DaysのDevelopment Snapshot、Density内訳と前期間比較、file detail coverageを表示。

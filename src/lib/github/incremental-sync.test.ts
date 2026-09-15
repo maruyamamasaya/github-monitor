@@ -68,6 +68,19 @@ describe("incremental commit sync", () => {
     expect(result.commitsByRepository["octo/app"]).toHaveLength(1); expect(result.warnings[0]).toContain("cache");
   });
 
+  it("records a 409 repository, pauses retries for 24 hours, and restores it after a successful retry", async () => {
+    const memory = memoryStore(cached(undefined, "2026-09-01T00:00:00.000Z"));
+    const list = vi.fn().mockRejectedValueOnce(Object.assign(new Error("Conflict"), { status: 409 })).mockResolvedValue({ items: [], requests: 1 });
+    const failed = await syncCommits([repo()], 5000, { list, detail: vi.fn() }, memory.store, now);
+    expect(failed.warnings).toHaveLength(0);
+    expect(failed.failedRepositories).toEqual([{ name: "octo/app", status: 409, at: now.toISOString(), excluded: true }]);
+    await syncCommits([repo()], 5000, { list, detail: vi.fn() }, memory.store, new Date(now.getTime() + 60_000));
+    expect(list).toHaveBeenCalledTimes(1);
+    const recovered = await syncCommits([repo()], 5000, { list, detail: vi.fn() }, memory.store, new Date(now.getTime() + 86_400_000));
+    expect(list).toHaveBeenCalledTimes(2);
+    expect(recovered.failedRepositories).toHaveLength(0);
+  });
+
   it("backfills at most five recent cached commits without listing again", async () => {
     const initial = cached(undefined, "2026-09-11T05:55:00.000Z");
     initial.lastFileDetailBackfillAt = "2026-09-11T04:00:00.000Z";

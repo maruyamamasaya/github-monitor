@@ -33,12 +33,13 @@ Next.js App RouterのServer ComponentがGitHub REST APIからデータを差分�
 ## Caching and Failure Handling
 
 - Repository metadataはNext.js Data Cacheで30分、rate limitは2分revalidateする。commit同期は独自cacheで制御する。
-- active repositoryは10分、30日以上inactiveなrepositoryは24時間の同期間隔とする。
+- active repositoryは30分、30日以上inactiveなrepositoryは24時間の同期間隔とする。
 - 旧cacheのfile detailは直近commit優先で1時間に最大5件をbackfillする。rate limit remaining 1,000未満では実行しない。
 - 同期は最大200 requests、rate limit remaining 500未満ではheavy syncを停止する。
 - Repository並列2、各Repositoryのcommit detail並列1（実効最大2）でSecondary Rate Limitへの圧力を抑える。
 - React `cache`で同一Server render内のloadをdeduplicateする。
 - Repository単位のAPI失敗はwarningとして表示し、取得できたデータを継続表示する。
+- commit一覧がGitHub API 409の場合はRepositoryを集計から一時除外し、失敗一覧をローカルcacheに保持する。24時間後に再試行し、成功時に自動復帰する。失敗一覧はDashboardの開発者向け情報に表示する。
 - Token未設定・認証失敗は専用の案内画面にする。
 
 ## External Services

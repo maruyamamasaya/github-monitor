@@ -3,7 +3,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { CommitActivity } from "@/types/activity";
 
-export type CachedRepository = { commits: Record<string, CommitActivity>; lastSyncedAt: string | null; lastCheckedAt: string | null };
+export type CachedRepository = { commits: Record<string, CommitActivity>; lastSyncedAt: string | null; lastCheckedAt: string | null; lastFailure?: { status: number | null; at: string } | null };
 export type CommitCache = { version: 1; repositories: Record<string, CachedRepository>; lastFileDetailBackfillAt?: string | null };
 export type CommitCacheStore = { read(): Promise<CommitCache>; write(cache: CommitCache): Promise<void> };
 
@@ -25,9 +25,13 @@ export function createFileCommitCache(file = path.join(process.cwd(), ".next", "
       } catch { return empty(); }
     },
     async write(cache) {
+      const serialized = JSON.stringify(cache);
+      try {
+        if (await fs.readFile(file, "utf8") === serialized) return;
+      } catch { /* The cache has not been written yet. */ }
       await fs.mkdir(path.dirname(file), { recursive: true });
       const temporary = `${file}.${process.pid}.tmp`;
-      await fs.writeFile(temporary, JSON.stringify(cache), "utf8");
+      await fs.writeFile(temporary, serialized, "utf8");
       await fs.rename(temporary, file);
     },
   };

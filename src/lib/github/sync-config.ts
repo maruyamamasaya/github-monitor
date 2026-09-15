@@ -1,6 +1,6 @@
 export const HISTORY_DAYS = 90;
 export const SYNC_OVERLAP_DAYS = 3;
-export const ACTIVE_SYNC_TTL_MS = 10 * 60 * 1000;
+export const ACTIVE_SYNC_TTL_MS = 30 * 60 * 1000;
 export const INACTIVE_AFTER_DAYS = 30;
 export const INACTIVE_SYNC_TTL_MS = 24 * 60 * 60 * 1000;
 export const MAX_REQUESTS_PER_SYNC = 200;

@@ -100,5 +100,6 @@ export type DashboardData = {
   rateLimit: RateLimit | null;
   apiMetrics: ApiMetrics;
   warnings: string[];
+  failedRepositories: { name: string; status: number | null; at: string; excluded: boolean }[];
   generatedAt: string;
 };

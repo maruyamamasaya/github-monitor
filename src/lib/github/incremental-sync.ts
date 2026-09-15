@@ -28,7 +28,8 @@ export async function syncCommits(repositories: Repository[], rateRemaining: num
     const inactive = repo.pushedAt ? daysBefore(now, INACTIVE_AFTER_DAYS).getTime() > new Date(repo.pushedAt).getTime() : true;
     const ttl = inactive ? INACTIVE_SYNC_TTL_MS : ACTIVE_SYNC_TTL_MS;
     const fresh = current.lastCheckedAt && now.getTime() - new Date(current.lastCheckedAt).getTime() < ttl;
-    if (fresh || lowRate || metrics.budgetRemaining <= 0) {
+    const conflictCooldown = current.lastFailure?.status === 409 && now.getTime() - new Date(current.lastFailure.at).getTime() < INACTIVE_SYNC_TTL_MS;
+    if (fresh || conflictCooldown || lowRate || metrics.budgetRemaining <= 0) {
       metrics.cacheHits += Object.keys(current.commits).length;
       return;
     }
@@ -40,7 +41,13 @@ export async function syncCommits(repositories: Repository[], rateRemaining: num
       metrics.apiRequests += result.requests;
       metrics.budgetRemaining -= result.requests;
     }
-    catch (error) { const status = error instanceof Error && "status" in error && typeof error.status === "number" ? error.status : null; warnings.push(`${repo.fullName} の差分同期に失敗したためcacheを表示しています。${status !== null ? ` (GitHub API ${status})` : ""}`); return; }
+    catch (error) {
+      const status = error instanceof Error && "status" in error && typeof error.status === "number" ? error.status : null;
+      current.lastFailure = { status, at: now.toISOString() };
+      if (status !== 409) warnings.push(`${repo.fullName} の差分同期に失敗したためcacheを表示しています。${status !== null ? ` (GitHub API ${status})` : ""}`);
+      return;
+    }
+    current.lastFailure = null;
     const unique = [...new Map(summaries.map((item) => [item.sha, item])).values()];
     const unknown = unique.filter((summary) => {
       if (current.commits[summary.sha]) { metrics.cacheHits++; return false; }
@@ -66,7 +73,7 @@ export async function syncCommits(repositories: Repository[], rateRemaining: num
   const canBackfill = !cold && !lowRate && (rateRemaining === null || rateRemaining >= FILE_DETAIL_BACKFILL_MIN_REMAINING) && now.getTime() - lastBackfill >= FILE_DETAIL_BACKFILL_TTL_MS;
   if (canBackfill && metrics.budgetRemaining > 0) {
     const repositoryByName = new Map(repositories.map((repo) => [repo.fullName, repo]));
-    const candidates = Object.entries(cache.repositories).filter(([repository]) => repositoryByName.has(repository)).flatMap(([repository, cachedRepo]) => Object.values(cachedRepo.commits).filter((commit) => !Array.isArray(commit.files)).map((commit) => ({ repository, commit }))).sort((a, b) => new Date(b.commit.authoredAt).getTime() - new Date(a.commit.authoredAt).getTime()).slice(0, Math.min(FILE_DETAIL_BACKFILL_BATCH, metrics.budgetRemaining));
+    const candidates = Object.entries(cache.repositories).filter(([repository, cachedRepo]) => repositoryByName.has(repository) && cachedRepo.lastFailure?.status !== 409).flatMap(([repository, cachedRepo]) => Object.values(cachedRepo.commits).filter((commit) => !Array.isArray(commit.files)).map((commit) => ({ repository, commit }))).sort((a, b) => new Date(b.commit.authoredAt).getTime() - new Date(a.commit.authoredAt).getTime()).slice(0, Math.min(FILE_DETAIL_BACKFILL_BATCH, metrics.budgetRemaining));
     cache.lastFileDetailBackfillAt = now.toISOString();
     await eachWithConcurrency(candidates, REPOSITORY_CONCURRENCY, async ({ repository, commit }) => {
       const repo = repositoryByName.get(repository); if (!repo) return;
@@ -79,5 +86,9 @@ export async function syncCommits(repositories: Repository[], rateRemaining: num
   if (detailFailures) warnings.push(`${detailFailures}件のcommit detail取得に失敗したため次回同期で再試行します。`);
   if (lowRate) warnings.push(`GitHub rate limit remainingが${LOW_RATE_LIMIT_REMAINING}未満のためcached dataを使用しました。`);
   await store.write(cache);
-  return { commitsByRepository: Object.fromEntries(repositories.map((repo) => [repo.fullName, Object.values(cache.repositories[repo.fullName]?.commits ?? {})])), metrics, warnings };
+  const failedRepositories = repositories.flatMap((repo) => {
+    const failure = cache.repositories[repo.fullName]?.lastFailure;
+    return failure ? [{ name: repo.fullName, status: failure.status, at: failure.at, excluded: failure.status === 409 }] : [];
+  });
+  return { commitsByRepository: Object.fromEntries(repositories.map((repo) => [repo.fullName, Object.values(cache.repositories[repo.fullName]?.commits ?? {})])), metrics, warnings, failedRepositories };
 }

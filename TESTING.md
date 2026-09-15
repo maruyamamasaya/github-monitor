@@ -28,6 +28,8 @@ VitestでActivity Score、期間境界（Asia/Tokyo）、集計、空データ�
 
 同期テストではSHA重複排除、既知detail再利用、新規commitだけの取得、3日overlap、inactive repository、request budget、low rate limit、partial failure、cold/warm、file-detail backfillの5件上限・cooldown・rate guardを検証する。
 
+GitHub API 409時の失敗記録、24時間の再試行間隔、成功時の記録解除を検証する。
+
 ## Integration / E2E
 
 自動E2Eはv1初期版では未導入。GitHub live APIは手動smoke testに限定する。
