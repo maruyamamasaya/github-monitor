@@ -25,6 +25,7 @@ v1.2のAPI効率を維持し、Development Snapshot、Meaningful LOC、file comp
 - DashboardとRepository詳細の日本語表示を全セクションへ適用し、Asia/Tokyo基準の日付に曜日を表示する。
 - 言語設定の復元を描画フレーム待ちからmicrotaskへ変更し、警告表示を実際の警告内容に合わせた。Trend chartの期間データと描画を再利用する。
 - ローカル起動はNext.js既定の3000を使用し、Local Dev Hubからは起動プロセスの`PORT`または`--port`で指定可能。他のローカルアプリへのURL参照はない。
+- 画面の配色に合わせた開発活動マークをブラウザのアイコンに設定。
 
 ## In Progress
 

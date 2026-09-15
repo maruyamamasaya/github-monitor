@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="github-monitor">
+  <rect width="64" height="64" rx="15" fill="#10161e"/>
+  <path d="M15 47V37M27 47V30M39 47V35M51 47V22" stroke="#3b4b5c" stroke-width="6" stroke-linecap="round"/>
+  <path d="M15 34 27 26 39 31 51 18" fill="none" stroke="#b7f34a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="51" cy="18" r="4" fill="#67d9ed"/>
+</svg>
