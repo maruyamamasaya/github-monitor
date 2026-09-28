@@ -28,6 +28,7 @@ v1.2のAPI効率を維持し、Development Snapshot、Meaningful LOC、file comp
 - Trend chartの日付ラベルは右端の今日から間隔を空けて配置し、重なりを避ける。
 - ローカル起動はNext.js既定の3000を使用し、Local Dev Hubからは起動プロセスの`PORT`または`--port`で指定可能。他のローカルアプリへのURL参照はない。
 - 画面の配色に合わせた開発活動マークをブラウザのアイコンに設定。
+- DashboardのGitHubデータ取得は初回表示と手動更新時に行い、期間切替は再取得せずClient側の表示だけを切り替える。
 
 ## In Progress
 

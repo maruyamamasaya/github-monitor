@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
 import { usePreferences } from "@/features/preferences/preferences-provider";
 import type { ChangeCategory, ChangeEvent, DashboardData, PeriodKey } from "@/types/activity";
 import { DailyChart, type TrendMetric } from "./daily-chart";
@@ -79,6 +80,7 @@ function MetricCard({ label, value, featured = false }: { label: string; value: 
 }
 
 export function Dashboard({ data, initialPeriod }: { data: DashboardData; initialPeriod: PeriodKey }) {
+  const router = useRouter();
   const { locale } = usePreferences();
   const text = ui[locale];
   const localizedPeriods: { key: PeriodKey; label: string }[] = periods.map((item, index) => ({ ...item, label: locale === "ja" ? ["今日", "7日間", "30日間"][index] : item.label }));
@@ -94,6 +96,14 @@ export function Dashboard({ data, initialPeriod }: { data: DashboardData; initia
   const [sort, setSort] = useState<SortKey>("score");
   const [changeFilter, setChangeFilter] = useState<"all" | ChangeCategory>("all");
   const [copied, setCopied] = useState(false);
+  const [isRefreshing, startRefresh] = useTransition();
+  const selectPeriod = (nextPeriod: PeriodKey) => {
+    setPeriod(nextPeriod);
+    const url = new URL(window.location.href);
+    url.searchParams.set("period", nextPeriod);
+    window.history.replaceState(window.history.state, "", url);
+  };
+  const refreshDashboard = () => startRefresh(() => router.refresh());
   const summary = data.analysis.summaries[period];
   const focus = data.analysis.focus[period];
   const momentum = data.analysis.momentum;
@@ -147,7 +157,12 @@ export function Dashboard({ data, initialPeriod }: { data: DashboardData; initia
         <h1 className="max-w-3xl text-3xl font-semibold leading-none tracking-[-.055em] sm:text-5xl">{locale === "ja" ? <>開発状況<br className="sm:hidden" />ダッシュボード</> : <>Development<br className="sm:hidden" /> signal room</>}</h1>
         <p className="muted mt-4 max-w-xl text-sm sm:text-base">{text.tagline}</p>
       </div>
-      <nav className="chip flex w-fit rounded-[10px] p-1" aria-label={text.period}>{localizedPeriods.map((item) => <a key={item.key} href={`/?period=${item.key}`} onClick={() => setPeriod(item.key)} aria-current={period === item.key ? "page" : undefined} data-active={period === item.key} className="control">{item.label}</a>)}</nav>
+      <div className="flex flex-wrap items-center gap-3">
+        <nav className="chip flex w-fit rounded-[10px] p-1" aria-label={text.period}>{localizedPeriods.map((item) => <button key={item.key} type="button" onClick={() => selectPeriod(item.key)} aria-pressed={period === item.key} data-active={period === item.key} className="control">{item.label}</button>)}</nav>
+        <button type="button" className="chip control" onClick={refreshDashboard} disabled={isRefreshing} aria-busy={isRefreshing}>
+          {isRefreshing ? (locale === "ja" ? "更新中…" : "Refreshing…") : (locale === "ja" ? "最新情報に更新" : "Refresh")}
+        </button>
+      </div>
     </header>
 
     {data.warnings.length > 0 && <div className="warning mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">{text.partial} · {data.warnings.length} {locale === "ja" ? "件の警告" : "warnings"}<ul className="mt-2 list-disc pl-5">{data.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul></div>}
