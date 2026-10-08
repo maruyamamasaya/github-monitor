@@ -29,6 +29,7 @@ v1.2のAPI効率を維持し、Development Snapshot、Meaningful LOC、file comp
 - ローカル起動はNext.js既定の3000を使用し、Local Dev Hubからは起動プロセスの`PORT`または`--port`で指定可能。他のローカルアプリへのURL参照はない。
 - 画面の配色に合わせた開発活動マークをブラウザのアイコンに設定。
 - DashboardのGitHubデータ取得は初回表示・手動更新・ブランチ対象切替時に行い、期間切替は再取得せずClient側の表示だけを切り替える。
+- 期間・集計対象のURL更新はNext.jsのNative History API連携を使い、ルーターへ選択を同期する。ブランチ切替・更新時にも選択中のURLを維持する。
 
 - 初回読み込み・手動更新中はスピナー付きステータスを表示し、Dashboardの「指標の定義・集計対象」でdefault branch・author日時・活動日数などの説明を展開できる。
 - Dashboardの「すべて／コードのみ」で全指標とグラフを切り替える。`scope=code`でURLへ保存し、切替時の追加API呼び出しはない。コードのみはファイル詳細取得済みのCode分類（HTML/CSSを含む）だけを集計し、未分類commitの除外件数を期間別に表示する。Repository詳細は全変更を表示する。

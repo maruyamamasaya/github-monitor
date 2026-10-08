@@ -111,7 +111,7 @@ export function Dashboard({ data: allData, codeData, sourceSize, initialPeriod, 
     setCopied(false);
     const url = new URL(window.location.href);
     url.searchParams.set("period", nextPeriod);
-    window.history.replaceState(window.history.state, "", url);
+    window.history.replaceState(null, "", url);
   };
   const refreshDashboard = () => startRefresh(() => router.refresh());
   const selectBranches = (next: BranchScope) => {
@@ -126,7 +126,7 @@ export function Dashboard({ data: allData, codeData, sourceSize, initialPeriod, 
     const url = new URL(window.location.href);
     if (nextScope === "code") url.searchParams.set("scope", "code");
     else url.searchParams.delete("scope");
-    window.history.replaceState(window.history.state, "", url);
+    window.history.replaceState(null, "", url);
     setCopied(false);
   };
   const syncMessage = describeSyncStatus(data.syncStatus, locale, data.failedRepositories.some(item => !item.excluded));
