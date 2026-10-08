@@ -8,6 +8,8 @@ import type { BranchScope, ChangeCategory, ChangeEvent, DashboardData, PeriodKey
 import { DailyChart, type TrendMetric } from "./daily-chart";
 import { describeSyncStatus } from "./sync-message";
 import { RefreshStatus } from "./refresh-status";
+import { SourceSizePanel } from "./source-size-panel";
+import type { SourceSizeSummary } from "@/types/source-size";
 import type { CodeScopeData } from "@/lib/analytics/code-scope";
 
 const periods: { key: PeriodKey; label: string }[] = [
@@ -83,7 +85,7 @@ function MetricCard({ label, value, featured = false }: { label: string; value: 
   </div>;
 }
 
-export function Dashboard({ data: allData, codeData, initialPeriod, initialScope, branchScope }: { data: DashboardData; codeData: CodeScopeData; initialPeriod: PeriodKey; initialScope: "all" | "code"; branchScope: BranchScope }) {
+export function Dashboard({ data: allData, codeData, sourceSize, initialPeriod, initialScope, branchScope }: { data: DashboardData; codeData: CodeScopeData; sourceSize: SourceSizeSummary; initialPeriod: PeriodKey; initialScope: "all" | "code"; branchScope: BranchScope }) {
   const [scope, setScope] = useState(initialScope);
   const data = useMemo(() => scope === "code" ? { ...allData, ...codeData } : allData, [scope, allData, codeData]);
   const router = useRouter();
@@ -271,6 +273,8 @@ export function Dashboard({ data: allData, codeData, initialPeriod, initialScope
         </Panel>
       </div>
     </section>
+
+    <SourceSizePanel key={sourceSize.lastAttemptedAt ?? "uninitialized"} initialData={sourceSize} />
 
     <section className="enter enter-delay-1 mt-8 grid gap-4 xl:grid-cols-[1.2fr_.8fr]">
       <article className="panel relative min-h-[270px] p-6 sm:p-8">

@@ -49,7 +49,9 @@ Next.js App RouterのServer ComponentがGitHub REST APIからデータを差分�
 
 ## External Services
 
-`/data`は選択branch scopeのJSON cacheをServer側で読み、Repository選択・50件pagination付きのcommit一覧と取得状況を表示する。追加API・同期は行わず、更新はDashboardから行う。
+総コード量はServer Actionでのみ更新する。Repository一覧・quota・default branchのhead・Git tree・blobを取得し、未変更SHAの行数を再利用する。1回200 requestsにmetadata/paginationを含め、quota 500未満で停止、403/429後は1分cooldownとする。活動syncと同じprocess lockでAPI負荷の重複を避けるが、cacheとrequest budgetは独立する。recursive treeがtruncatedなら非recursive subtree queueを永続化して段階走査する。Actionは安全なsummaryだけを返し、Dashboardの再同期・再描画は要求しない。
+
+`/data`は選択branch scopeのJSON cacheをServer側で読み、Repository別またはJST作者日付別のcommit一覧・取得状況を50件paginationで表示する。日別はRepository横断と日付選択に対応する。追加API・同期は行わず、更新はDashboardから行う。
 
 GitHub REST APIのみ。Repository metadata、commits、commit detail、rate limitを取得する。
 

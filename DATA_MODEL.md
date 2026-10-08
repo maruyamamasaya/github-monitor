@@ -25,6 +25,8 @@ GitHubを正本とし、`.next/cache/github-monitor/commits.json`へversioned JS
 
 ## Identity and Relations
 
+- `.next/cache/github-monitor/source-size.json`は活動cacheとは独立したversioned JSON。Repositoryごとにdefault branch/head SHA、対象file manifest、未取得subtree queue、除外数、試行・完了日時、失敗分類を保存する。blob SHAは物理行数（binaryはnull）へのmapであり、ソース本文は保存しない。途中のmanifestがなくならないようtree完了後だけ到達不能blobを除去する。
+
 - RepositoryはGitHub numeric idで一意。
 - CommitはRepository idとSHAの組で一意。
 - Repositoryは複数Commit Activityを持つ。

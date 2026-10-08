@@ -44,6 +44,9 @@
 
 ## Invariants
 
+- 総コード量は各Repositoryのdefault branchの取得時点のファイルを対象とし、作者や活動期間で絞らない。Code / Test / Docs / Configの物理行数（空行・コメント込み）を別々に数える。活動の変更行数とは別の指標で、Repository間の共通コードは各Repositoryで数える。
+- 総量から生成物・依存・lockfile・画像などの対象外、symlink、submodule、binary/不正encoding、2 MiB超のfileを除外する。サイズ超過は件数を表示する。未取得は0扱いせず部分値とcoverageを表示する。
+
 - changedLinesはadditionsとdeletionsの合計。
 - netLinesはadditionsからdeletionsを引いた値で負数を許容する。
 - File分類はTest、Docs、Config、Code、Otherの優先順で一元判定する。

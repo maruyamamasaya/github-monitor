@@ -41,9 +41,13 @@ branch進捗は同一headの別名を含めたbranch数、budget中断後の再�
 
 ## Integration / E2E
 
+総コード量はfixtureで分類・物理行数・UTF-16/binary・SHA再利用・rename/delete・budget再開・truncated tree再開・quota/secondary limit・file失敗再試行・空Repositoryを検証する。Server Actionの安全な例外変換も検証する。日別はJST日境界とRepository間の同一SHAが別件になることを検証する。
+
 自動E2Eはv1初期版では未導入。GitHub live APIは手動smoke testに限定する。
 
 ## Manual Verification
+
+- 総コード量の未集計表示・専用ボタン・取得中表示・部分値・Repository別内訳。活動更新と総量更新が相互に同期を起こさないこと。日別の全Repository・日付選択・Repository絞り込み・50件pagination。
 
 - 取得済みデータページのRepository選択・branch scope切替・commit pagination・空cache・部分取得状況。閲覧時にGitHub API取得がないこと。
 

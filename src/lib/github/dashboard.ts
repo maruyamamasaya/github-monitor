@@ -13,11 +13,11 @@ import { syncCommits } from "./incremental-sync";
 type RawRepo = Parameters<typeof toRepository>[0];
 type RawCommit = Parameters<typeof toCommitActivity>[0];
 
-async function listRepositories(): Promise<{ repositories: Repository[]; requests: number }> {
+export async function listRepositories(fetchJson: typeof githubFetch = githubFetch): Promise<{ repositories: Repository[]; requests: number }> {
   const all: Repository[] = [];
   let requests = 0;
   for (let page = 1; ; page++) {
-    const batch = await githubFetch<RawRepo[]>(`/user/repos?affiliation=owner,collaborator,organization_member&sort=pushed&per_page=100&page=${page}`, 1800);
+    const batch = await fetchJson<RawRepo[]>(`/user/repos?affiliation=owner,collaborator,organization_member&sort=pushed&per_page=100&page=${page}`, 1800);
     requests++;
     all.push(...batch.map(toRepository));
     if (batch.length < 100) break;

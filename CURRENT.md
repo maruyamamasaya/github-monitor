@@ -52,6 +52,10 @@ v1.2のAPI効率を維持し、Development Snapshot、Meaningful LOC、file comp
 - 全ブランチの未完了Repositoryにブランチ確認済み数・総数・残数を表示する。一覧取得途中は総数未確定とし、進捗はcacheへ保存する。
 - `/data`でRepository別の保存済みcommit一覧・取得状況・最終同期日時を確認できる。branch scope切替と50件paginationに対応し、このページはGitHub APIを呼ばない。
 
+- 総コード量はdefault branchの最新ファイルをコード・テスト・文書・設定の物理行数へ分類して表示する。専用「コード量を更新」でのみ取得し、活動同期・期間・作者・branch scopeとは独立する。
+- 総コード量の取得は200 request budget・quota guard・同一processの同期lockを使い、blob SHAの行数だけを保存して未変更内容を再利用する。途中から続行でき、Repository別の確認file数・完了日時・失敗状態を表示する。
+- `/data?view=day`でJST作者日付を選んで全Repository横断またはRepository別のcommit・変更行数・Repository数を確認できる。閲覧時のAPI取得はない。
+
 ## In Progress
 
 - None.

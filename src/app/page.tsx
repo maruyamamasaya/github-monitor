@@ -3,6 +3,7 @@ import { loadDashboard } from "@/lib/github/dashboard";
 import { GitHubApiError } from "@/lib/github/client";
 import type { PeriodKey } from "@/types/activity";
 import { buildCodeScope } from "@/lib/analytics/code-scope";
+import { readSourceSize } from "@/lib/github/source-size";
 
 export const dynamic = "force-dynamic";
 
@@ -41,5 +42,5 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   };
   const codeScope = buildCodeScope(data.repositories, new Date(data.generatedAt));
   const clientCodeScope = { ...codeScope, repositories: codeScope.repositories.map((item) => ({ ...item, commits: [] })) };
-  return <Dashboard data={clientData} codeData={clientCodeScope} initialPeriod={period} initialScope={params.scope === "code" ? "code" : "all"} branchScope={branchScope} />;
+  return <Dashboard data={clientData} codeData={clientCodeScope} sourceSize={await readSourceSize()} initialPeriod={period} initialScope={params.scope === "code" ? "code" : "all"} branchScope={branchScope} />;
 }
