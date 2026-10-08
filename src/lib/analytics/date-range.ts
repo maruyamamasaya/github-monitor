@@ -14,7 +14,7 @@ export function toJstDateKey(value: Date | string): string {
 export function getJstStart(period: PeriodKey, now = new Date()): Date {
   const today = toJstDateKey(now);
   const [year, month, day] = today.split("-").map(Number);
-  const daysBack = period === "today" ? 0 : period === "week" ? 6 : 29;
+  const daysBack = period === "today" ? 0 : period === "week" ? 6 : period === "month" ? 29 : 89;
   return new Date(Date.UTC(year, month - 1, day - daysBack, -9, 0, 0, 0));
 }
 

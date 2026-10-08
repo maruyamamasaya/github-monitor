@@ -1,4 +1,5 @@
-export type PeriodKey = "today" | "week" | "month";
+export type PeriodKey = "today" | "week" | "month" | "quarter";
+export type BranchScope = "default" | "all";
 
 export type Repository = {
   id: number;
@@ -92,7 +93,10 @@ export type CockpitAnalysis = {
   development: DevelopmentAnalysis;
 };
 
+export type SyncStatus = { pendingRepositories: number; pauseReason: "budget" | "quota" | "rate-limit" | null; detailFailures: number };
+
 export type DashboardData = {
+  syncStatus: SyncStatus;
   username: string;
   repositories: RepositoryActivity[];
   dailyActivity: DailyActivity[];

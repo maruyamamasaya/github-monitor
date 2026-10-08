@@ -37,3 +37,11 @@ describe("aggregation", () => {
     expect(result.at(-1)).toMatchObject({ date: "2026-09-11", commits: 1, changedLines: 12, changedFiles: 1, activeRepositories: 1 });
   });
 });
+
+it("uses 90 inclusive JST dates and excludes future commits", () => {
+ const now = new Date("2026-10-07T07:00:00Z");
+ expect(getJstStart("quarter", now).toISOString()).toBe("2026-07-09T15:00:00.000Z");
+ expect(isWithinPeriod("2026-07-09T15:00:00Z", "quarter", now)).toBe(true);
+ expect(isWithinPeriod("2026-07-09T14:59:59Z", "quarter", now)).toBe(false);
+ expect(isWithinPeriod("2026-10-07T07:00:01Z", "quarter", now)).toBe(false);
+});

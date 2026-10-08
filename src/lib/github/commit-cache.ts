@@ -3,8 +3,9 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { CommitActivity } from "@/types/activity";
 
-export type CachedRepository = { commits: Record<string, CommitActivity>; lastSyncedAt: string | null; lastCheckedAt: string | null; lastFailure?: { status: number | null; at: string } | null };
-export type CommitCache = { version: 1; repositories: Record<string, CachedRepository>; lastFileDetailBackfillAt?: string | null };
+export type BranchHeadSnapshot = { since: string; items: { sha: string; authoredAt?: string }[] };
+export type CachedRepository = { commits: Record<string, CommitActivity>; lastSyncedAt: string | null; lastCheckedAt: string | null; lastAttemptedAt?: string; partial?: boolean; branchHeads?: Record<string, BranchHeadSnapshot>; lastFailure?: { status: number | null; at: string } | null };
+export type CommitCache = { version: 1; authors?: string[]; repositories: Record<string, CachedRepository>; lastFileDetailBackfillAt?: string | null };
 export type CommitCacheStore = { read(): Promise<CommitCache>; write(cache: CommitCache): Promise<void> };
 
 const empty = (): CommitCache => ({ version: 1, repositories: {} });

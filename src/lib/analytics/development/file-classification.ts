@@ -15,7 +15,7 @@ const DOC_PATH = /(^|\/)(docs?|documentation|adr|decisions)\//i;
 const DOC_NAME = /(^|\/)(readme|changelog|contributing|license)(\.|$)/i;
 const CONFIG_NAME = /(^|\/)(\.env(?:\..*)?\.example|tsconfig(?:\..*)?\.json|eslint\.config\.|next\.config\.|vite\.config\.|dockerfile|makefile)/i;
 const CONFIG_EXT = /\.(json|ya?ml|toml|ini|conf|config|properties)$/i;
-const CODE_EXT = /\.(ts|tsx|js|jsx|mjs|cjs|swift|py|java|go|rs|cpp|cc|cxx|c|h|hpp|cs|kt|kts|rb|php|scala|vue|svelte|sh|sql)$/i;
+const CODE_EXT = /\.(ts|tsx|js|jsx|mjs|cjs|swift|py|java|go|rs|cpp|cc|cxx|c|h|hpp|cs|kt|kts|rb|php|scala|vue|svelte|sh|sql|html?|css|scss|sass|less)$/i;
 
 export function isMeaningfulFile(filename: string): boolean {
   return !MEANINGFUL_LOC_EXCLUSIONS.some((pattern) => pattern.test(filename.replaceAll("\\", "/")));

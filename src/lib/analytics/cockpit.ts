@@ -42,7 +42,7 @@ export function aggregateDayHour(commits: CommitActivity[]): DayHourCell[] {
 
 function percentChange(current:number, previous:number){ return previous===0 ? (current===0?0:null) : Math.round((current-previous)/previous*100); }
 export function analyzeCockpit(repositories: RepositoryActivity[], now=new Date()): CockpitAnalysis {
-  const all=repositories.flatMap(r=>r.commits); const periods:PeriodKey[]=["today","week","month"];
+  const all=repositories.flatMap(r=>r.commits); const periods:PeriodKey[]=["today","week","month","quarter"];
   const summaries=Object.fromEntries(periods.map(p=>[p,sumMetrics(repositories.map(r=>r.metrics[p]))])) as Record<PeriodKey,Metrics>;
   const activeDays=Object.fromEntries(periods.map(p=>[p,new Set(selected(all,p,now).map(c=>toJstDateKey(c.authoredAt))).size])) as Record<PeriodKey,number>;
   const focus=Object.fromEntries(periods.map(p=>[p,calculateFocus(repositories.map(r=>r.metrics[p]))])) as Record<PeriodKey,FocusMetrics>;

@@ -6,6 +6,11 @@ GitHubを正本とし、`.next/cache/github-monitor/commits.json`へversioned JS
 
 ## Runtime Models
 
+- `BranchScope`: `default` / `all`。defaultは既存`commits.json`、allは`commits-all-branches.json`へ保存し、所属履歴が混ざらないようにする。同じSHAのdetailはscope間で再利用する。
+- `CachedRepository.partial`: 一覧・detail取得が未完了であることを示す。partial時は次回更新でTTLを待たず再試行し、完全取得後に解除する。一覧未完了時は同期cursorを進めず過去cacheを維持する。
+- `CachedRepository.branchHeads`: 全ブランチで走査完了したhead SHAから`since`とcommit SHA/author日時一覧へのmap。未完了headは登録しない。不変headの履歴再取得を避け、budgetによる中断後も次のheadへ進める。
+- `CachedRepository.lastAttemptedAt`: 実際に同期を試行した時刻。全ブランチでは未着手を優先し、残る部分取得を古い試行順に再開する。
+
 - `Repository`: id、owner、name、visibility、URL、default branch、updated/pushed時刻、language、archived、fork。
 - `CommitActivity`: SHA、Repository、author日時、message、additions、deletions、changedFiles、任意のfile detail（filename/status/additions/deletions/changes）、URL。
 - `PeriodMetrics`: commits、activeDays、additions、deletions、changedLines、changedFiles、score。
@@ -13,6 +18,9 @@ GitHubを正本とし、`.next/cache/github-monitor/commits.json`へversioned JS
 - `DashboardData`: Repository活動、30日daily series、summary、rate limit、warnings、generatedAt。
 - `DevelopmentSnapshot`: raw/meaningful LOC、net、files、new files、active repos/days、Test/Docs量、file detail coverage。
 - `DevelopmentDensity`: 0–100の参考値、5つのsub score、前期間値、説明文。能力・品質・生産性の評価ではない。
+- `CodeScopeData`: code fileだけで再集計したRepository metrics、daily series、CockpitAnalysis、Today/7/30 Daysごとの未分類commit件数。派生値のため永続化しない。
+
+- `GITHUB_AUTHORS`で複数commit作者を指定可能。`GITHUB_USERNAME`も必ず含め、Repository内SHAで重複除外する。作者集合変更時は既存detailを維持して同期cursor・head snapshotを無効化し、90日分を上限内で再照合する。
 
 ## Identity and Relations
 

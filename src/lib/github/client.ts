@@ -1,5 +1,7 @@
 import "server-only";
 
+import { resolveAuthors } from "./authors";
+
 const API_URL = "https://api.github.com";
 
 export class GitHubApiError extends Error {
@@ -10,7 +12,7 @@ export function getGitHubConfig() {
   const token = process.env.GITHUB_TOKEN?.trim();
   const username = process.env.GITHUB_USERNAME?.trim();
   if (!token || !username) throw new GitHubApiError(0, "GitHubの接続設定がありません。");
-  return { token, username };
+  return { token, username, authors: resolveAuthors(username, process.env.GITHUB_AUTHORS) };
 }
 
 export async function githubFetch<T>(path: string, revalidate: number | false = false): Promise<T> {

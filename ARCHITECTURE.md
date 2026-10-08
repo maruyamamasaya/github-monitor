@@ -29,6 +29,8 @@ Next.js App RouterのServer ComponentがGitHub REST APIからデータを差分�
 4. 未知SHAのcommit detailだけを制限付き並列処理で取得し、file status/statsを含めSHA単位の永続cacheへ保存する。既知SHAは全指標とRepository詳細で再利用し、過去detailのbackfillはしない。
 5. Dashboardの期間はURLの`period`で保持し、Server render時の選択をClient Componentへ渡す。Tokenは境界を越えない。
 6. Change DetectionとDevelopment分析も同じcommit modelからServer側で実行し、serializableな結果だけをClientへ渡す。追加APIは呼ばない。
+7. Dashboardでは同じ取得済みcommitからCode-only modelもServer側で構築する。Clientへはcommit/file detailを渡さず、集計済みmodelを切り替える。`scope=code`をnative History APIで保持し、期間・scope切替ではAPIを再取得しない。
+8. `branches=all`ではServer側でbranch一覧をpaginationし、各head SHAの90日履歴を取得する。同一headの走査とRepository内commit SHAを重複除外する。branch scope切替はServer navigationを行い、期間・code scope選択は維持する。Repository詳細も同じbranch scopeを使う。
 
 ## Caching and Failure Handling
 
@@ -38,6 +40,9 @@ Next.js App RouterのServer ComponentがGitHub REST APIからデータを差分�
 - 同期は最大200 requests、rate limit remaining 500未満ではheavy syncを停止する。
 - Repository並列2、各Repositoryのcommit detail並列1（実効最大2）でSecondary Rate Limitへの圧力を抑える。
 - React `cache`で同一Server render内のloadをdeduplicateする。
+- branch scopeごとにJSON cacheを分離し、別scopeに保存済みのdetailは選択scopeの一覧に含まれるSHAだけ再利用する。全ブランチは新branch・削除・rebaseを反映するため90日一覧を再照合し、完了した一覧だけで到達可能性を更新する。
+- 全ブランチの走査完了head SHAとauthor日時付きcommit SHA一覧も保存する。headが不変で保存済み期間が90日windowを覆う場合は一覧を再利用する。部分取得時も完了headを残すため次回は未完了headへ進める。branch一覧の完全取得後に消えたhead snapshotを除去する。
+- 一覧paginationも送信前に共有200 request budgetから予約する。1 Repositoryは最大1,000 unique commit。budget/page上限・detail失敗時はpartial状態を永続化し、Repository名付き警告と次回更新での再試行を行う。403/429時は追加取得を停止する。
 - Repository単位のAPI失敗はwarningとして表示し、取得できたデータを継続表示する。
 - commit一覧がGitHub API 409の場合はRepositoryを集計から一時除外し、失敗一覧をローカルcacheに保持する。24時間後に再試行し、成功時に自動復帰する。失敗一覧はDashboardの開発者向け情報に表示する。
 - Token未設定・認証失敗は専用の案内画面にする。

@@ -4,10 +4,11 @@
 
 ## Features
 
-- Today / 7 Days / 30 Daysのsummary切替
+- Today / 7 Days / 30 Days / 90 Daysのsummary切替
 - Repository別のcommit、追加・削除行、active days、Activity Score
 - 過去30日のdaily commit chart
 - Repository詳細と直近commit stats
+- デフォルトブランチ／全ブランチ切替。push済みの未マージbranchもSHA重複を除いて集計し、取得上限による部分データは警告する。
 - Private Repository対応（Token権限内）
 - archived / fork / 任意Repositoryの除外
 - GitHub API rate limit、loading、error、empty state
@@ -31,6 +32,7 @@ cp .env.example .env.local
 ```env
 GITHUB_TOKEN=github_pat_your_token
 GITHUB_USERNAME=maruyamamasaya
+GITHUB_AUTHORS=maruyamamasaya,xsbyl101
 GITHUB_EXCLUDED_REPOS=owner/repo,another-repo
 GITHUB_INCLUDE_ARCHIVED=false
 GITHUB_INCLUDE_FORKS=false

@@ -14,6 +14,81 @@ function memoryStore(initial?: CommitCache) {
 const cached = (lastSyncedAt = "2026-09-11T05:00:00.000Z", lastCheckedAt = "2026-09-11T05:00:00.000Z"): CommitCache => ({ version: 1, lastFileDetailBackfillAt: now.toISOString(), repositories: { "octo/app": { commits: { old: commit("old") }, lastSyncedAt, lastCheckedAt } } });
 
 describe("incremental commit sync", () => {
+  it("prioritizes unstarted repositories before large partial scans", async () => {
+    const initial = cached();
+    initial.repositories["octo/app"].partial = true;
+    initial.repositories["octo/app"].lastSyncedAt = null;
+    const memory = memoryStore(initial);
+    const calls: string[] = [];
+    const result = await syncCommits([repo(), { ...repo(), fullName: "octo/second", name: "second" }, { ...repo(), fullName: "octo/third", name: "third" }], 5000, {
+      list: async (repository, _since, context) => { calls.push(repository.fullName); context.reserveRequest(); return { items: [], requests: 1 }; }, detail: vi.fn(),
+    }, memory.store, now, 2, { fullHistory: true });
+    expect(calls).toEqual(["octo/second", "octo/third"]);
+    expect(result.metrics.budgetRemaining).toBe(0);
+    expect(memory.value().repositories["octo/second"].lastSyncedAt).toBe(now.toISOString());
+    expect(memory.value().repositories["octo/app"].commits.old).toBeDefined();
+  });
+
+  it("rotates partial repositories using the oldest actual attempt first", async () => {
+    const initial = cached();
+    initial.repositories["octo/app"].partial = true;
+    initial.repositories["octo/app"].lastAttemptedAt = now.toISOString();
+    initial.repositories["octo/second"] = { ...structuredClone(initial.repositories["octo/app"]), lastAttemptedAt: "2026-09-10T00:00:00Z" };
+    const calls: string[] = [];
+    await syncCommits([repo(), { ...repo(), fullName: "octo/second", name: "second" }], 5000, {
+      list: async (repository, _since, context) => { calls.push(repository.fullName); context.reserveRequest(); return { items: [], requests: 1, complete: false }; }, detail: vi.fn(),
+    }, memoryStore(initial).store, now, 1, { fullHistory: true });
+    expect(calls).toEqual(["octo/second"]);
+  });
+  it("reuses opposite-scope details only after their SHA was listed in the selected scope", async () => {
+    const memory = memoryStore();
+    const reusable = cached().repositories;
+    reusable["octo/app"].commits.unmerged = commit("unmerged");
+    const detail = vi.fn();
+    const result = await syncCommits([repo()], 5000, { list: async () => ({ items: [{ sha: "old" }], requests: 1 }), detail }, memory.store, now, 200, { reusableDetails: reusable });
+    expect(detail).not.toHaveBeenCalled();
+    expect(result.commitsByRepository["octo/app"].map((item) => item.sha)).toEqual(["old"]);
+  });
+
+  it("rescans 90 days for all branches and removes commits reachable only from deleted branches", async () => {
+    const memory = memoryStore(cached("2026-09-10T00:00:00Z", "2026-09-10T00:00:00Z"));
+    const list = vi.fn(async (_repo: Repository, since: string) => { void since; return { items: [{ sha: "new" }], requests: 1 }; });
+    const result = await syncCommits([repo()], 5000, { list, detail: async () => commit("new") }, memory.store, now, 200, { fullHistory: true });
+    expect(result.commitsByRepository["octo/app"].map((item) => item.sha)).toEqual(["new"]);
+    expect(memory.value().repositories["octo/app"].partial).toBe(false);
+    expect(new Date(list.mock.calls[0][1]).getTime()).toBe(now.getTime() - 90 * 86_400_000);
+  });
+
+  it("retries pending details without waiting for the warm cache TTL and clears partial status", async () => {
+    const memory = memoryStore();
+    const list = vi.fn(async () => ({ items: [{ sha: "a" }, { sha: "b" }], requests: 1 }));
+    const api = { list, detail: async (_repo: Repository, item: { sha: string }) => commit(item.sha) };
+    await syncCommits([repo()], 5000, api, memory.store, now, 2);
+    expect(memory.value().repositories["octo/app"].partial).toBe(true);
+    const completed = await syncCommits([repo()], 5000, api, memory.store, new Date(now.getTime() + 1000), 200);
+    expect(list).toHaveBeenCalledTimes(2);
+    expect(completed.commitsByRepository["octo/app"]).toHaveLength(2);
+    expect(memory.value().repositories["octo/app"].partial).toBe(false);
+    expect(completed.warnings.join(" ")).not.toContain("部分取得");
+  });
+
+  it("keeps previous history on partial scans, does not advance the cursor and persists the warning", async () => {
+    const initial = cached("2026-09-10T00:00:00Z", "2026-09-10T00:00:00Z");
+    const memory = memoryStore(initial);
+    const result = await syncCommits([repo()], 5000, { list: async (_repo, _since, context) => { context.reserveRequest(); return { items: [], requests: 1, complete: false }; }, detail: vi.fn() }, memory.store, now, 1, { fullHistory: true });
+    expect(result.commitsByRepository["octo/app"]).toHaveLength(1);
+    expect(result.metrics.apiRequests).toBe(1); expect(result.metrics.budgetRemaining).toBe(0);
+    expect(memory.value().repositories["octo/app"].lastSyncedAt).toBe(initial.repositories["octo/app"].lastSyncedAt);
+    expect(memory.value().repositories["octo/app"].lastCheckedAt).toBeNull();
+    expect(result.warnings.join(" ")).toContain("部分取得");
+  });
+
+  it("shares list request reservations between concurrent repositories", async () => {
+    const memory = memoryStore();
+    let calls = 0;
+    const result = await syncCommits([repo(), { ...repo(), name: "second", fullName: "octo/second" }], 5000, { list: async (_repo, _since, context) => { let requests = 0; while (context.reserveRequest()) { requests++; calls++; await Promise.resolve(); } return { items: [], requests, complete: false }; }, detail: vi.fn() }, memory.store, now, 3, { fullHistory: true });
+    expect(calls).toBe(3); expect(result.metrics.apiRequests).toBe(3); expect(result.metrics.budgetRemaining).toBe(0);
+  });
   it("performs a cold 90-day sync and removes duplicate SHAs", async () => {
     const memory = memoryStore();
     const list = vi.fn(async (repository: Repository, since: string) => { void repository; void since; return { items: [{ sha: "new" }, { sha: "new" }], requests: 1 }; });
@@ -101,4 +176,20 @@ describe("incremental commit sync", () => {
     await syncCommits([repo()], 999, { list: vi.fn(), detail }, memoryStore(old).store, now);
     expect(detail).not.toHaveBeenCalled();
   });
+});
+
+it("rescans history after adding an author while reusing existing details", async () => {
+ const initial = cached(); initial.authors=["octo"]; initial.repositories["octo/app"].branchHeads={tip:{since:"2026-07-01",items:[]}};
+ const memory=memoryStore(initial); const list=vi.fn(async (_repo: Repository, since: string) => ({items:[{sha:"old"},{sha:"additional"}],requests:1, since})); const detail=vi.fn(async (_repo: Repository, item: {sha:string})=>commit(item.sha));
+ await syncCommits([repo()],5000,{list,detail},memory.store,now,20,{authors:["octo","second"]});
+ expect(list).toHaveBeenCalledOnce(); expect(list.mock.calls[0][1]).toBe("2026-06-13T06:00:00.000Z");
+ expect(detail).toHaveBeenCalledOnce(); expect(Object.keys(memory.value().repositories["octo/app"].commits)).toEqual(["old","additional"]);
+ expect(memory.value().authors).toEqual(["octo","second"]);
+ expect(memory.value().repositories["octo/app"].branchHeads).toEqual({});
+});
+
+it("does not report excluded 409 repositories as pending after an author change", async()=>{
+ const memory=memoryStore(cached());
+ const result=await syncCommits([repo()],5000,{list:vi.fn().mockRejectedValue(Object.assign(new Error("Conflict"),{status:409})),detail:vi.fn()},memory.store,now,20,{authors:["octo","second"]});
+ expect(result.syncStatus.pendingRepositories).toBe(0); expect(result.warnings).toEqual([]); expect(result.failedRepositories[0].excluded).toBe(true);
 });

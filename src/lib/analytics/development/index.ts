@@ -5,8 +5,8 @@ import { calculateSessions } from "./sessions";
 import { buildRepositoryScale, buildSnapshot } from "./snapshot";
 import { buildDetailedSummary, buildProfileSummary } from "./summary";
 
-const periods: PeriodKey[] = ["today","week","month"];
-const days: Record<PeriodKey,number> = { today:1, week:7, month:30 };
+const periods: PeriodKey[] = ["today","week","month","quarter"];
+const days: Record<PeriodKey,number> = { today:1, week:7, month:30, quarter:90 };
 export function analyzeDevelopment(repositories: RepositoryActivity[], now=new Date()): DevelopmentAnalysis {
   const all=repositories.flatMap(r=>r.commits);
   return Object.fromEntries(periods.map(period=>{

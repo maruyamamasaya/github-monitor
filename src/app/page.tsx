@@ -2,16 +2,19 @@ import { Dashboard } from "@/features/dashboard/dashboard";
 import { loadDashboard } from "@/lib/github/dashboard";
 import { GitHubApiError } from "@/lib/github/client";
 import type { PeriodKey } from "@/types/activity";
+import { buildCodeScope } from "@/lib/analytics/code-scope";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
-  const selectedPeriod = (await searchParams).period;
-  const period: PeriodKey = selectedPeriod === "today" || selectedPeriod === "week" ? selectedPeriod : "month";
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ period?: string; scope?: string; branches?: string }> }) {
+  const params = await searchParams;
+  const selectedPeriod = params.period;
+  const branchScope = params.branches === "all" ? "all" : "default";
+  const period: PeriodKey = selectedPeriod === "today" || selectedPeriod === "week" || selectedPeriod === "quarter" ? selectedPeriod : "month";
   let data;
   let loadError: unknown;
   try {
-    data = await loadDashboard();
+    data = await loadDashboard(branchScope);
   } catch (error) {
     loadError = error;
   }
@@ -36,5 +39,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     ...data,
     repositories: data.repositories.map((item) => ({ ...item, commits: [] })),
   };
-  return <Dashboard data={clientData} initialPeriod={period} />;
+  const codeScope = buildCodeScope(data.repositories, new Date(data.generatedAt));
+  const clientCodeScope = { ...codeScope, repositories: codeScope.repositories.map((item) => ({ ...item, commits: [] })) };
+  return <Dashboard data={clientData} codeData={clientCodeScope} initialPeriod={period} initialScope={params.scope === "code" ? "code" : "all"} branchScope={branchScope} />;
 }

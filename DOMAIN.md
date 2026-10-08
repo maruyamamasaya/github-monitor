@@ -3,7 +3,7 @@
 ## Glossary
 
 - **Tracked Repository**: Token利用者がアクセス可能で、除外条件に該当しないRepository。
-- **Activity Window**: Today、7 Days、30 Daysのいずれか。TrendとHeatmapは最大90日。Asia/Tokyoの日境界で集計する。
+- **Activity Window**: Today、7 Days、30 Days、90 Daysのいずれか。TrendとHeatmapは最大90日。Asia/Tokyoの日境界で集計する。
 - **Commit Activity**: 対象ユーザーがauthorであるcommitの件数、追加・削除行、変更file数、活動日。
 - **Active Repository**: 選択期間内に1件以上のcommitがあるRepository。
 - **Activity Score**: Repository間の相対比較用の参考値。
@@ -24,7 +24,7 @@
 
 - Repository一覧は認証済みユーザーがアクセス可能な範囲を対象にする。
 - archived、fork、`GITHUB_EXCLUDED_REPOS`指定Repositoryは集計対象外にできる。
-- commitは設定されたGitHub usernameをauthorとして最大30日分取得する。
+- commitは設定されたGitHub usernameをauthorとして最大90日分取得する。branch scopeはdefault（既定）またはall。allは現在GitHubに存在するpush済みbranchの履歴をRepository内SHAで重複除外する。未push、削除済みbranchのみで到達可能なcommitは対象外。squash/rebaseでSHAが異なるcommitは別件として扱う。
 - additions、deletions、changed filesはcommit detailから集計する。
 - Activity Scoreは `commits * 4 + activeDays * 8 + log2(changedLines + 1) * 3 + log2(changedFiles + 1) * 2` とする。
 - Momentumは直近7日Scoreを、それ以前の3週間の週平均Scoreで割る。1.5以上をHOT、0.65以上をSTABLE、それ未満をCOOLINGとする。
@@ -35,13 +35,19 @@
 - Large commitは履歴8件以上ならRepository別p95、未満なら1,000 changed linesを閾値とする。
 - Commit burstは60分で5件、または3時間で10件を初期閾値とする。
 - 同一commitはRepository内のSHAで一意とみなす。
+- Code-only scopeはMeaningful対象かつCode分類のfileだけを使用する。Test/Docs/Config/Otherと生成物を除外し、code fileを1つ以上変更したcommitを1件として数える。混在commitのadditions/deletions/changedFilesもcode部分だけで再集計する。
+- Code-only scopeの比較期間・daily series・活動日数・session・Score・Densityも同じ対象を使う。file detail未取得commitは推測せず除外し、選択期間内の未分類件数を明示する。Markdownの内容を意味解析する分類は行わない。
+
+- 90日間は今日を含むJSTの90暦日。曜日・時間帯と曜日別棒グラフは選択期間に連動する。前90日間のDensity比較は保存対象外のため表示しない。期間切替による追加API取得はない。
+
+- `GITHUB_AUTHORS`で複数commit作者を指定可能。`GITHUB_USERNAME`も必ず含め、Repository内SHAで重複除外する。作者集合変更時は既存detailを維持して同期cursor・head snapshotを無効化し、90日分を上限内で再照合する。
 
 ## Invariants
 
 - changedLinesはadditionsとdeletionsの合計。
 - netLinesはadditionsからdeletionsを引いた値で負数を許容する。
 - File分類はTest、Docs、Config、Code、Otherの優先順で一元判定する。
-- activeDaysは選択期間内のJST日付の重複を除いた数。
+- activeDaysは選択期間内のcommit author日時をJST日付へ変換し、全Repository横断で重複を除いた数。push・merge日時や実際の作業日数ではない。
 - TodayはAsia/Tokyoの当日00:00から現在まで。
 - Scoreは分析上の参考値で、開発時間を表さない。
 

@@ -4,13 +4,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { usePreferences } from "@/features/preferences/preferences-provider";
-import type { ChangeCategory, ChangeEvent, DashboardData, PeriodKey } from "@/types/activity";
+import type { BranchScope, ChangeCategory, ChangeEvent, DashboardData, PeriodKey } from "@/types/activity";
 import { DailyChart, type TrendMetric } from "./daily-chart";
+import { describeSyncStatus } from "./sync-message";
+import { RefreshStatus } from "./refresh-status";
+import type { CodeScopeData } from "@/lib/analytics/code-scope";
 
 const periods: { key: PeriodKey; label: string }[] = [
   { key: "today", label: "Today" },
   { key: "week", label: "7 Days" },
   { key: "month", label: "30 Days" },
+  { key: "quarter", label: "90 Days" },
 ];
 type SortKey = "commits" | "changedLines" | "changedFiles" | "activeDays" | "score" | "momentum" | "pushedAt";
 
@@ -19,7 +23,7 @@ const ui = {
   ja: { tagline: "変更量・集中度・継続性から、いま注力している開発を把握します。", period: "集計期間", primary: "本日の概況", baseline: "直前7日間の日平均比", activity: "の活動量", commits: "コミット", zero: "直前7日間に活動がない状態から、新しい活動がありました", activeRepos: "活動中のリポジトリ", focusScore: "集中度", recent: "注目すべき変化", signals: "件", empty: "この条件に該当する大きな変化はありません。", snapshot: "期間別の活動概要", aggregate: "の集計", trajectoryFocus: "活動推移と注力度", velocity: "開発ペースとリポジトリごとの配分", trajectory: "活動量の推移", repoShare: "リポジトリ別の活動構成", activityScore: "活動スコア", rhythm: "開発リズムと勢い", pattern: "直近90日間の活動傾向", map: "直近90日間の活動記録", hover: "各日にカーソルを合わせると詳細を表示します", less: "少", more: "多", momentum: "リポジトリの勢い", prior: "直近7日間 / それ以前の週平均", matrix: "リポジトリ別の活動一覧", sort: "件 · 見出しを選ぶと並べ替えられます", profile: "開発活動の傾向", diagnostics: "コミットの規模・時間帯・言語・前週比", commitSize: "コミット規模", dayHour: "曜日・時間帯別のコミット", activePattern: "曜日別の活動傾向", language: "言語別の活動量", wow: "前週との比較", generated: "更新日時", unavailable: "取得できませんでした", partial: "一部のデータのみ表示しています", failed: "件のリポジトリ取得に失敗しました" },
 } as const;
 
-const periodDays: Record<PeriodKey, number> = { today: 1, week: 7, month: 30 };
+const periodDays: Record<PeriodKey, number> = { today: 1, week: 7, month: 30, quarter: 90 };
 
 function localizeEvent(event: ChangeEvent, format: Intl.NumberFormat): { title: string; description: string } {
   const repository = event.repository ?? "全リポジトリ";
@@ -75,15 +79,17 @@ function Bars({ items }: { items: { label: string; value: number; text: string; 
 function MetricCard({ label, value, featured = false }: { label: string; value: string; featured?: boolean }) {
   return <div className={`panel panel-interactive relative px-4 py-4 ${featured ? "border-[color:rgb(183_243_74_/_25%)]" : ""}`}>
     <p className="muted text-xs font-medium">{label}</p>
-    <p className={`metric-value mt-2 text-2xl font-semibold ${featured ? "text-[var(--accent)]" : ""}`}>{value}</p>
+    <p className={`metric-value mt-2 text-xl font-semibold ${featured ? "text-[var(--accent)]" : ""}`}>{value}</p>
   </div>;
 }
 
-export function Dashboard({ data, initialPeriod }: { data: DashboardData; initialPeriod: PeriodKey }) {
+export function Dashboard({ data: allData, codeData, initialPeriod, initialScope, branchScope }: { data: DashboardData; codeData: CodeScopeData; initialPeriod: PeriodKey; initialScope: "all" | "code"; branchScope: BranchScope }) {
+  const [scope, setScope] = useState(initialScope);
+  const data = useMemo(() => scope === "code" ? { ...allData, ...codeData } : allData, [scope, allData, codeData]);
   const router = useRouter();
   const { locale } = usePreferences();
   const text = ui[locale];
-  const localizedPeriods: { key: PeriodKey; label: string }[] = periods.map((item, index) => ({ ...item, label: locale === "ja" ? ["今日", "7日間", "30日間"][index] : item.label }));
+  const localizedPeriods: { key: PeriodKey; label: string }[] = periods.map((item, index) => ({ ...item, label: locale === "ja" ? ["今日", "7日間", "30日間", "90日間"][index] : item.label }));
   const fmt = useMemo(() => new Intl.NumberFormat(locale === "ja" ? "ja-JP" : "en-US"), [locale]);
   const compact = useMemo(() => new Intl.NumberFormat(locale === "ja" ? "ja-JP" : "en-US", { notation: "compact", maximumFractionDigits: 1 }), [locale]);
   const dateFormatter = useMemo(() => new Intl.DateTimeFormat(locale === "ja" ? "ja-JP" : "en-US", { timeZone: "Asia/Tokyo", month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" }), [locale]);
@@ -91,7 +97,7 @@ export function Dashboard({ data, initialPeriod }: { data: DashboardData; initia
   const dateFmt = (value: string | null) => value ? dateFormatter.format(new Date(value)) : "—";
   const [period, setPeriod] = useState<PeriodKey>(initialPeriod);
   const [trendMetric, setTrendMetric] = useState<TrendMetric>("commits");
-  const [trendDays, setTrendDays] = useState<30 | 90>(30);
+  const [trendDays, setTrendDays] = useState<30 | 90>(initialPeriod === "quarter" ? 90 : 30);
   const trendData = useMemo(() => data.dailyActivity.slice(-trendDays), [data.dailyActivity, trendDays]);
   const [sort, setSort] = useState<SortKey>("score");
   const [changeFilter, setChangeFilter] = useState<"all" | ChangeCategory>("all");
@@ -99,11 +105,29 @@ export function Dashboard({ data, initialPeriod }: { data: DashboardData; initia
   const [isRefreshing, startRefresh] = useTransition();
   const selectPeriod = (nextPeriod: PeriodKey) => {
     setPeriod(nextPeriod);
+    setTrendDays(nextPeriod === "quarter" ? 90 : 30);
+    setCopied(false);
     const url = new URL(window.location.href);
     url.searchParams.set("period", nextPeriod);
     window.history.replaceState(window.history.state, "", url);
   };
   const refreshDashboard = () => startRefresh(() => router.refresh());
+  const selectBranches = (next: BranchScope) => {
+    const url = new URL(window.location.href);
+    if (next === "all") url.searchParams.set("branches", "all");
+    else url.searchParams.delete("branches");
+    setCopied(false);
+    startRefresh(() => router.replace(`${url.pathname}${url.search}`, { scroll: false }));
+  };
+  const selectScope = (nextScope: "all" | "code") => {
+    setScope(nextScope);
+    const url = new URL(window.location.href);
+    if (nextScope === "code") url.searchParams.set("scope", "code");
+    else url.searchParams.delete("scope");
+    window.history.replaceState(window.history.state, "", url);
+    setCopied(false);
+  };
+  const syncMessage = describeSyncStatus(data.syncStatus, locale, data.failedRepositories.some(item => !item.excluded));
   const summary = data.analysis.summaries[period];
   const focus = data.analysis.focus[period];
   const momentum = data.analysis.momentum;
@@ -114,9 +138,11 @@ export function Dashboard({ data, initialPeriod }: { data: DashboardData; initia
   const localizedSummary = locale === "ja"
     ? `${localizedPeriods.find(item=>item.key===period)?.label}：実質変更 ${fmt.format(dev.meaningfulChangedLines)} 行・${fmt.format(dev.commits)} コミット・${fmt.format(dev.activeRepositories)} リポジトリ・活動 ${fmt.format(dev.activeDays)} 日`
     : development.summary;
-  const detailedSummary = locale === "ja"
+  const detailedSummaryBase = locale === "ja"
     ? `${localizedPeriods.find(item=>item.key===period)?.label}：\n実質変更行数 ${fmt.format(dev.meaningfulChangedLines)} 行\n追加 +${fmt.format(dev.additions)} / 削除 -${fmt.format(dev.deletions)} / 差分 ${dev.netLines >= 0 ? "+" : ""}${fmt.format(dev.netLines)} 行\n${fmt.format(dev.commits)} コミット\n${fmt.format(dev.changedFiles)} ファイルを変更\n${fmt.format(dev.activeRepositories)} リポジトリ\n活動日数 ${fmt.format(dev.activeDays)} 日\n推定作業セッション ${fmt.format(development.sessions.count)} 回`
     : development.detailedSummary;
+  const scopedSummary = scope === "code" ? `${locale === "ja" ? "集計対象：コードのみ（ファイル詳細取得済み）" : "Scope: code only (commits with file details)"}\n${detailedSummaryBase}\n${locale === "ja" ? "未分類のため除外したコミット" : "Unclassified commits excluded"}: ${codeData.unclassifiedCommits[period]}` : detailedSummaryBase;
+  const detailedSummary = `${locale === "ja" ? "ブランチ対象" : "Branches"}: ${branchScope === "all" ? (locale === "ja" ? "全ブランチ（push済み・SHA重複除外）" : "All pushed branches, deduplicated by SHA") : (locale === "ja" ? "デフォルトブランチ" : "Default branch")}\n${scopedSummary}`;
   const copySummary = async () => { await navigator.clipboard.writeText(detailedSummary); setCopied(true); window.setTimeout(() => setCopied(false), 1600); };
   const duration = (minutes: number) => locale === "ja"
     ? (minutes >= 60 ? `${Math.floor(minutes / 60)}時間${minutes % 60 ? `${minutes % 60}分` : ""}` : `${minutes}分`)
@@ -145,7 +171,8 @@ export function Dashboard({ data, initialPeriod }: { data: DashboardData; initia
   const slots = ["00–06", "06–12", "12–18", "18–24"];
   const days = locale === "ja" ? ["月", "火", "水", "木", "金", "土", "日"] : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const maxHour = Math.max(1, ...data.analysis.dayHour[period].map((cell) => cell.commits));
-  const maxWeekday = Math.max(1, ...anomaly.weekdayActivity);
+  const weekdayActivity = days.map((_, day) => data.analysis.dayHour[period].filter(cell => cell.day === day).reduce((sum, cell) => sum + cell.commits, 0));
+  const maxWeekday = Math.max(1, ...weekdayActivity);
   const pulseTone = anomaly.pulse.level === "VERY HIGH" ? "var(--orange)" : anomaly.pulse.level === "HIGH" ? "var(--accent)" : anomaly.pulse.level === "LOW" ? "var(--cyan)" : "var(--text)";
   const pulseLevel = locale === "ja" ? ({ "VERY HIGH": "非常に活発", HIGH: "活発", NORMAL: "通常", LOW: "低調" } as const)[anomaly.pulse.level] : anomaly.pulse.level;
   const tableHeaders = locale === "ja" ? ["今日", "7日", "30日", "コミット", "+", "−", "ファイル", "日数", "スコア", "勢い", "最終更新"] : ["Today", "7d", "30d", "Commits", "+", "−", "Files", "Days", "Score", "Momentum", "Last push"];
@@ -153,19 +180,55 @@ export function Dashboard({ data, initialPeriod }: { data: DashboardData; initia
   return <main className="shell cockpit">
     <header className="enter flex flex-col gap-6 border-b hairline pb-6 md:flex-row md:items-end md:justify-between">
       <div>
-        <div className="mb-4 flex items-center gap-2.5"><span className="status-dot h-2 w-2 rounded-full bg-[var(--accent)]" /><span className="eyebrow">{locale === "ja" ? "github monitor · 最新状況" : "github monitor · live signal"}</span></div>
-        <h1 className="max-w-3xl text-3xl font-semibold leading-none tracking-[-.055em] sm:text-5xl">{locale === "ja" ? <>開発状況<br className="sm:hidden" />ダッシュボード</> : <>Development<br className="sm:hidden" /> signal room</>}</h1>
+        <div className="mb-4 flex items-center gap-2.5"><span className="status-dot h-2 w-2 rounded-full bg-[var(--accent)]" /><span className="eyebrow">{locale === "ja" ? "github monitor · 開発活動" : "github monitor · development activity"}</span></div>
+        <h1 className="max-w-3xl text-2xl font-semibold leading-tight tracking-[-.04em] sm:text-4xl">{locale === "ja" ? <>開発状況<br className="sm:hidden" />ダッシュボード</> : <>Development<br className="sm:hidden" /> signal room</>}</h1>
         <p className="muted mt-4 max-w-xl text-sm sm:text-base">{text.tagline}</p>
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <nav className="chip flex w-fit rounded-[10px] p-1" aria-label={text.period}>{localizedPeriods.map((item) => <button key={item.key} type="button" onClick={() => selectPeriod(item.key)} aria-pressed={period === item.key} data-active={period === item.key} className="control">{item.label}</button>)}</nav>
+        <div className="chip flex w-fit rounded-[10px] p-1" role="group" aria-label={locale === "ja" ? "集計対象" : "Activity scope"}>{(["all", "code"] as const).map((item) => <button key={item} type="button" onClick={() => selectScope(item)} aria-pressed={scope === item} data-active={scope === item} className="control">{locale === "ja" ? (item === "all" ? "すべて" : "コードのみ") : (item === "all" ? "All" : "Code only")}</button>)}</div>
+        <div className="chip flex w-fit rounded-[10px] p-1" role="group" aria-label={locale === "ja" ? "ブランチ対象" : "Branch scope"}>{(["default", "all"] as const).map((item) => <button key={item} type="button" onClick={() => selectBranches(item)} disabled={isRefreshing || branchScope === item} aria-pressed={branchScope === item} data-active={branchScope === item} className="control">{locale === "ja" ? (item === "default" ? "デフォルトブランチ" : "全ブランチ") : (item === "default" ? "Default branch" : "All branches")}</button>)}</div>
         <button type="button" className="chip control" onClick={refreshDashboard} disabled={isRefreshing} aria-busy={isRefreshing}>
           {isRefreshing ? (locale === "ja" ? "更新中…" : "Refreshing…") : (locale === "ja" ? "最新情報に更新" : "Refresh")}
         </button>
       </div>
     </header>
 
-    {data.warnings.length > 0 && <div className="warning mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">{text.partial} · {data.warnings.length} {locale === "ja" ? "件の警告" : "warnings"}<ul className="mt-2 list-disc pl-5">{data.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul></div>}
+    <div className="mt-4" aria-live="polite">{isRefreshing && <RefreshStatus />}</div>
+    {branchScope === "all" && <p className="muted mt-4 text-xs leading-5">{locale === "ja" ? "全ブランチ：GitHubにpush済みで現在存在するブランチの直近90日を集計。同じリポジトリの同じSHAは1件として数えます。未pushの作業・削除済みブランチのみの履歴は対象外です。API上限に達した場合は取得済み分を表示します。" : "All branches: the last 90 days from currently existing pushed branches. Each SHA counts once per repository. Unpushed work and history reachable only from deleted branches are excluded. API limits may result in partial data."}</p>}
+    {scope === "code" && <p role="status" className="chip mt-4 rounded-xl px-4 py-3 text-sm leading-6">{locale === "ja" ? "コードのみで集計中。テスト・Docs・メモ・設定・生成物を除外し、コード変更を含むコミットと、そのコード部分だけを集計しています。グラフ・活動日数・スコア・セッションも同じ対象です。リポジトリ詳細は全変更を表示します。" : "Showing code only. Tests, docs, memos, configuration and generated files are excluded. Counts, charts, scores and sessions use commits containing code changes and only their code files. Repository detail pages show all changes."}<span className="mt-1 block font-medium">{locale === "ja" ? `選択期間内の未分類コミット：${fmt.format(codeData.unclassifiedCommits[period])}件（ファイル詳細未取得のため除外）` : `Unclassified commits in this period: ${fmt.format(codeData.unclassifiedCommits[period])} (excluded because file details are missing)`}</span></p>}
+    <details className="chip mt-4 rounded-xl px-4 py-3 text-sm">
+      <summary className="cursor-pointer font-medium">{locale === "ja" ? "指標の定義・集計対象" : "Metric definitions & scope"}</summary>
+      <p className="muted mt-3 leading-6">{locale === "ja" ? "対象は、設定したユーザーが作成し、選択中のブランチ対象（デフォルトブランチ、または全ブランチ）に含まれるコミットです。日付はコミットの作成日時を日本時間で集計し、push・マージ日時ではありません。未マージのブランチは全ブランチ選択時のみ対象です。未pushのコミット、コミットしていない作業は対象外です。更新時もキャッシュとAPI利用制限により反映が遅れる場合があります。" : "Includes commits authored by the configured user in the selected branch scope (default branch or all branches). Dates use the commit author timestamp in Asia/Tokyo, rather than push or merge time. Unmerged branches are included only in all-branches mode. Unpushed commits and work without commits are excluded. Cache and API limits may delay updates."}</p>
+      <dl className="mt-3 grid gap-3 sm:grid-cols-2">{(locale === "ja" ? [
+        ["活動日数", "選択期間内に1件以上コミットがある日の数。Docsやメモのみのコミットも含み、同じ日に複数リポジトリで活動しても1日です。"],
+        ["コミット・活動リポジトリ", "選択期間内のコミット件数と、1件以上コミットがあるリポジトリ数です。"],
+        ["変更行数・変更ファイル", "各コミットの追加行＋削除行、変更ファイル数の合計。同じファイルの複数回の変更も加算します。"],
+        ["実質変更行数・詳細取得率", "取得済みのファイル詳細ではlockfileや生成物などを除外。DocsやMarkdownメモも含み、変更内容の内訳で分類を確認できます。未取得分は総変更行数で暫定集計します。詳細取得率はファイル詳細を取得済みのコミットの割合です。"],
+        ["活動スコア・開発密度", "コミットや活動日数、変更量などから算出する比較用の参考値。作業時間・品質・生産性を表しません。"],
+        ["1日あたりコミット", "コミット数 ÷ 活動日数。コミットがない日は分母に含めません。"],
+        ["上位リポジトリ比率", "選択期間の活動スコア合計に対する、最上位リポジトリの割合です。"],
+        ["セッション", "コミット間隔が90分未満のまとまり。90分以上空くと次のセッションになり、実際の作業時間ではありません。"],
+      ] : [
+        ["Active days", "Days with at least one commit in the selected period, including docs-only and memo-only commits. Multiple repositories on the same day count once."],
+        ["Commits & active repositories", "Commit count and repositories with at least one commit in the selected period."],
+        ["Changed lines & files", "Sum of additions plus deletions and changed file counts per commit. Repeated changes count again."],
+        ["Meaningful lines & coverage", "Excludes lockfiles and generated files where file details are available. Includes docs and Markdown memos; see file composition for the breakdown. Missing details use raw changed lines provisionally. Coverage is the share of commits with file details."],
+        ["Activity score & density", "Reference values based on commits, active days and change volume. They do not measure working time, quality or productivity."],
+        ["Commits per day", "Commits divided by active days. Days without commits are excluded from the denominator."],
+        ["Top repository share", "The leading repository’s share of the total activity score in the selected period."],
+        ["Sessions", "Groups of commits less than 90 minutes apart. A gap of 90 minutes starts a new session; this does not measure working time."],
+      ]).map(([label, description]) => <div key={label}><dt className="text-xs font-semibold">{label}</dt><dd className="muted mt-1 text-xs leading-5">{description}</dd></div>)}</dl>
+    </details>
+
+    {data.warnings.length > 0 && <div className="warning mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm" role="status">
+      <p className="font-semibold">{syncMessage.title}</p>
+      <p className="mt-2 leading-6">{syncMessage.explanation}</p>
+      <p className="mt-1 leading-6">{syncMessage.action}</p>
+      {data.syncStatus.pauseReason === "quota" && data.rateLimit && <p className="mt-2">{locale === "ja" ? "利用枠の回復予定" : "Quota resets"}: {dateFmt(data.rateLimit.resetAt)} JST</p>}
+      {syncMessage.retry && <button type="button" className="control mt-3" onClick={refreshDashboard} disabled={isRefreshing}>{isRefreshing ? (locale === "ja" ? "更新中…" : "Refreshing…") : data.syncStatus.pauseReason === "budget" ? (locale === "ja" ? "続きを取得" : "Continue fetching") : (locale === "ja" ? "再試行" : "Retry")}</button>}
+      <details className="mt-3 border-t hairline pt-3"><summary className="cursor-pointer">{locale === "ja" ? "詳細ログ（対象リポジトリ・技術情報）" : "Detailed log (repositories and technical information)"}</summary><ul className="mt-2 list-disc space-y-2 break-words pl-5">{data.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></details>
+    </div>}
 
     <section className="enter enter-delay-1 mt-8">
       <SectionHeading index="00" title={locale === "ja" ? "開発状況サマリー" : "Development Snapshot"} sub={locale === "ja" ? "活動量と継続性の目安です。能力や品質を評価するものではありません" : "Activity volume and density — not ability or quality"} />
@@ -173,7 +236,7 @@ export function Dashboard({ data, initialPeriod }: { data: DashboardData; initia
         <div className="accent-rule absolute left-0 top-0 h-[2px] w-full" />
         <div className="relative z-10">
           <p className="eyebrow">{localizedPeriods.find(item=>item.key===period)?.label}</p>
-          <p className="mt-4 max-w-5xl text-xl font-semibold tracking-[-.025em] sm:text-3xl">{locale === "ja" ? <>{fmt.format(dev.meaningfulChangedLines)} 行を実質変更 <span className="muted">·</span> {fmt.format(dev.commits)} コミット <span className="muted">·</span> {dev.activeRepositories} リポジトリ <span className="muted">·</span> 活動 {dev.activeDays} 日</> : <>{fmt.format(dev.meaningfulChangedLines)} lines changed <span className="muted">·</span> {fmt.format(dev.commits)} commits <span className="muted">·</span> {dev.activeRepositories} repositories <span className="muted">·</span> {dev.activeDays} active days</>}</p>
+          <p className="mt-4 max-w-5xl text-lg font-semibold tracking-[-.025em] sm:text-2xl">{locale === "ja" ? <>{fmt.format(dev.meaningfulChangedLines)} 行を実質変更 <span className="muted">·</span> {fmt.format(dev.commits)} コミット <span className="muted">·</span> {dev.activeRepositories} リポジトリ <span className="muted">·</span> 活動 {dev.activeDays} 日</> : <>{fmt.format(dev.meaningfulChangedLines)} lines changed <span className="muted">·</span> {fmt.format(dev.commits)} commits <span className="muted">·</span> {dev.activeRepositories} repositories <span className="muted">·</span> {dev.activeDays} active days</>}</p>
           <div className="mt-6 grid grid-cols-2 gap-x-6 gap-y-5 border-t hairline pt-6 sm:grid-cols-4 xl:grid-cols-8">
             {(locale === "ja" ? [["追加行数",`+${compact.format(dev.additions)}`],["削除行数",`−${compact.format(dev.deletions)}`],["行数の純増減",`${dev.netLines>=0?"+":"−"}${compact.format(Math.abs(dev.netLines))}`],["総変更行数",compact.format(dev.changedLines)],["実質変更行数",compact.format(dev.meaningfulChangedLines)],["変更ファイル",fmt.format(dev.changedFiles)],["新規ファイル",dev.newFiles===null?"—":`${fmt.format(dev.newFiles)}${partialSuffix}`],["詳細取得率",`${dev.fileDetailCoverage}%`]] : [["Added LOC",`+${compact.format(dev.additions)}`],["Deleted LOC",`−${compact.format(dev.deletions)}`],["Net LOC",`${dev.netLines>=0?"+":"−"}${compact.format(Math.abs(dev.netLines))}`],["Raw changed",compact.format(dev.changedLines)],["Meaningful LOC",compact.format(dev.meaningfulChangedLines)],["Files",fmt.format(dev.changedFiles)],["New files",dev.newFiles===null?"—":`${fmt.format(dev.newFiles)}${partialSuffix}`],["Coverage",`${dev.fileDetailCoverage}%`]]).map(([label,value])=><div key={label}><p className="muted text-xs">{label}</p><p className="metric-value mt-1 text-xl font-semibold">{value}</p></div>)}
           </div>
@@ -181,7 +244,7 @@ export function Dashboard({ data, initialPeriod }: { data: DashboardData; initia
         </div>
       </article>
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
-        <Panel title={`${locale === "ja" ? "開発活動密度" : "Development Density"} ${development.density.score} / 100`} sub={`${locale==="ja"?"前期間":"Previous"} ${development.density.previousScore} · Δ ${development.density.delta>=0?"+":""}${development.density.delta}`}>
+        <Panel title={`${locale === "ja" ? "開発活動密度" : "Development Density"} ${development.density.score} / 100`} sub={period === "quarter" ? (locale === "ja" ? "前90日比較は対象期間外" : "Previous 90 days unavailable") : `${locale==="ja"?"前期間":"Previous"} ${development.density.previousScore} · Δ ${development.density.delta>=0?"+":""}${development.density.delta}`}>
           <Bars items={Object.entries(development.density.breakdown).map(([key,value])=>({label:(locale === "ja" ? {volume:"活動量",consistency:"継続性",breadth:"対象の広がり",delivery:"作業のまとまり",engineeringActivity:"実装・保守の構成"} : {volume:"Volume",consistency:"Consistency",breadth:"Breadth",delivery:"Delivery",engineeringActivity:"Engineering Activity"})[key as keyof typeof development.density.breakdown],value,text:String(value),color:key==="volume"?"var(--accent)":"var(--cyan)"}))} />
           <div className="mt-5 grid gap-1 border-t hairline pt-4 text-xs">{(locale === "ja" ? [dev.commits ? `${fmt.format(dev.commits)} コミット / 実質変更 ${fmt.format(dev.meaningfulChangedLines)} 行` : "この期間のコミットはありません", `活動日数 ${dev.activeDays} / ${periodDays[period]} 日`, `${dev.activeRepositories} リポジトリで活動`, dev.coveredCommits ? `ファイル詳細の取得率 ${dev.fileDetailCoverage}%` : "ファイル詳細は未取得です"] : development.density.explanations).map(line=><span key={line} className="muted">{line}</span>)}</div>
         </Panel>
@@ -191,7 +254,7 @@ export function Dashboard({ data, initialPeriod }: { data: DashboardData; initia
           <div className="mt-6 grid grid-cols-2 gap-4 border-t hairline pt-4 text-xs"><span><i className="muted block not-italic">{locale === "ja" ? "テストの変更行数 / ファイル数" : "Test LOC / files"}</i><b>{dev.testLines===null?"—":`${compact.format(dev.testLines)}${partialSuffix}`} / {dev.testFiles===null?"—":`${dev.testFiles}${partialSuffix}`}</b></span><span><i className="muted block not-italic">{locale === "ja" ? "文書の変更行数 / ファイル数" : "Docs LOC / files"}</i><b>{dev.docsLines===null?"—":`${compact.format(dev.docsLines)}${partialSuffix}`} / {dev.docsFiles===null?"—":`${dev.docsFiles}${partialSuffix}`}</b></span></div>
         </Panel>
         <Panel title={locale === "ja" ? "推定作業セッション" : "Estimated Git Activity Sessions"} sub={locale === "ja" ? `${development.sessions.count} 回 · 1回あたり ${development.sessions.commitsPerSession} コミット` : `${development.sessions.count} sessions · ${development.sessions.commitsPerSession} commits/session`}>
-          <div className="grid grid-cols-3 gap-4"><span><i className="muted block text-xs not-italic">{locale === "ja" ? "中央値" : "Median window"}</i><b className="metric-value mt-1 block text-2xl">{duration(development.sessions.medianMinutes)}</b></span><span><i className="muted block text-xs not-italic">{locale === "ja" ? "最長" : "Longest window"}</i><b className="metric-value mt-1 block text-2xl">{duration(development.sessions.longestMinutes)}</b></span><span><i className="muted block text-xs not-italic">{locale === "ja" ? "観測時間" : "Observed window"}</i><b className="metric-value mt-1 block text-2xl">{duration(development.sessions.observedWindowMinutes)}</b></span></div>
+          <div className="grid grid-cols-3 gap-4"><span><i className="muted block text-xs not-italic">{locale === "ja" ? "中央値" : "Median window"}</i><b className="metric-value mt-1 block text-xl">{duration(development.sessions.medianMinutes)}</b></span><span><i className="muted block text-xs not-italic">{locale === "ja" ? "最長" : "Longest window"}</i><b className="metric-value mt-1 block text-xl">{duration(development.sessions.longestMinutes)}</b></span><span><i className="muted block text-xs not-italic">{locale === "ja" ? "観測時間" : "Observed window"}</i><b className="metric-value mt-1 block text-xl">{duration(development.sessions.observedWindowMinutes)}</b></span></div>
           <p className="muted mt-5 border-t hairline pt-4 text-xs">{locale === "ja" ? "コミット間隔が90分以上空いた場合に別セッションとして集計します。最初から最後のコミットまでの時間であり、実際の作業時間ではありません。" : "90+ minute gaps start a new session. Windows span first-to-last commit only; they are not coding time."}</p>
         </Panel>
         <Panel title={locale === "ja" ? "リポジトリ別の開発規模" : "Repository Development Scale"} sub={locale === "ja" ? `${development.repositories.length} 件で活動` : `${development.repositories.length} active`}>
@@ -206,8 +269,8 @@ export function Dashboard({ data, initialPeriod }: { data: DashboardData; initia
         <div className="relative z-10 flex h-full flex-col justify-between gap-10">
           <div className="flex items-center justify-between"><span className="eyebrow">{text.primary}</span><span className="mono muted text-xs">{text.baseline}</span></div>
           <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-            <div><p className="text-sm font-medium uppercase tracking-[.18em]" style={{ color: pulseTone }}>{pulseLevel}{text.activity}</p><p className="metric-value mt-2 text-6xl font-semibold sm:text-7xl">{anomaly.pulse.todayCommits}<span className="ml-2 text-lg tracking-normal text-[var(--muted)]">{text.commits}</span></p><p className="muted mt-3 text-sm">{anomaly.pulse.changePercent === null ? text.zero : `${anomaly.pulse.changePercent >= 0 ? "+" : ""}${anomaly.pulse.changePercent}% · ${text.baseline} ${anomaly.pulse.baseline}/${locale === "ja" ? "日" : "day"}`}</p></div>
-            <div className="grid grid-cols-2 gap-8 border-t hairline pt-5 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0"><div><p className="metric-value text-3xl font-semibold">{anomaly.pulse.activeRepositories}</p><p className="muted mt-1 text-xs">{text.activeRepos}</p></div><div><p className="metric-value text-3xl font-semibold">{focus.score}</p><p className="muted mt-1 text-xs">{text.focusScore}</p></div></div>
+            <div><p className="text-sm font-medium uppercase tracking-[.18em]" style={{ color: pulseTone }}>{pulseLevel}{text.activity}</p><p className="metric-value mt-2 text-5xl font-semibold sm:text-6xl">{anomaly.pulse.todayCommits}<span className="ml-2 text-lg tracking-normal text-[var(--muted)]">{text.commits}</span></p><p className="muted mt-3 text-sm">{anomaly.pulse.changePercent === null ? text.zero : `${anomaly.pulse.changePercent >= 0 ? "+" : ""}${anomaly.pulse.changePercent}% · ${text.baseline} ${anomaly.pulse.baseline}/${locale === "ja" ? "日" : "day"}`}</p></div>
+            <div className="grid grid-cols-2 gap-8 border-t hairline pt-5 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0"><div><p className="metric-value text-2xl font-semibold">{anomaly.pulse.activeRepositories}</p><p className="muted mt-1 text-xs">{text.activeRepos}</p></div><div><p className="metric-value text-2xl font-semibold">{focus.score}</p><p className="muted mt-1 text-xs">{text.focusScore}</p></div></div>
           </div>
           <div className="grid grid-cols-2 gap-x-5 gap-y-4 border-t hairline pt-5 sm:grid-cols-4">{anomaly.dayOverDay.map((day, index) => <div key={day.label}><p className="muted text-xs">{locale === "ja" ? ["コミット", "変更行数", "変更ファイル", "活動リポジトリ"][index] : day.label}</p><p className="mono mt-1 text-sm">{compact.format(day.yesterday)} <span className="faint">→</span> <b>{compact.format(day.today)}</b></p></div>)}</div>
         </div>
@@ -260,7 +323,7 @@ export function Dashboard({ data, initialPeriod }: { data: DashboardData; initia
       <div className="panel scroll-fade overflow-x-auto">
         <table className="w-full min-w-[1100px] border-collapse text-left text-xs">
           <thead className="mono muted table-head text-[.6875rem] uppercase tracking-wider"><tr><th className="px-5 py-4">{locale === "ja" ? "リポジトリ" : "Repository"}</th>{[["commits"], ["commits"], ["commits"], ["commits"], [null], [null], ["changedFiles"], ["activeDays"], ["score"], ["momentum"], ["pushedAt"]].map(([key], index) => <th key={`${tableHeaders[index]}-${index}`} className="px-3 py-4"><button disabled={!key} onClick={() => key && setSort(key as SortKey)} className={key ? "hover:text-[var(--text)]" : ""}>{tableHeaders[index]}{sort === key ? " ↓" : ""}</button></th>)}</tr></thead>
-          <tbody>{rows.map((row) => { const metrics = row.metrics[period]; const movement = momentum[row.repository.fullName]; return <tr key={row.repository.id} className="border-t hairline transition-colors hover:bg-white/[.035]"><td className="px-5 py-4"><Link href={`/repositories/${encodeURIComponent(row.repository.owner)}/${encodeURIComponent(row.repository.name)}`} className="text-sm font-semibold hover:text-[var(--accent)]">{row.repository.name}</Link><span className="muted ml-2">{row.repository.language ?? "—"}</span></td><td className="mono px-3">{row.metrics.today.commits}</td><td className="mono px-3">{row.metrics.week.commits}</td><td className="mono px-3">{row.metrics.month.commits}</td><td className="mono px-3">{metrics.commits}</td><td className="mono px-3 text-[var(--accent)]">+{metrics.additions}</td><td className="mono px-3 text-[var(--red)]">−{metrics.deletions}</td><td className="mono px-3">{metrics.changedFiles}</td><td className="mono px-3">{metrics.activeDays}</td><td className="mono px-3 font-bold">{metrics.score.toFixed(1)}</td><td className="mono px-3">{movement.value}x</td><td className="muted whitespace-nowrap px-3">{dateFmt(row.repository.pushedAt)}</td></tr>; })}</tbody>
+          <tbody>{rows.map((row) => { const metrics = row.metrics[period]; const movement = momentum[row.repository.fullName]; return <tr key={row.repository.id} className="border-t hairline transition-colors hover:bg-white/[.035]"><td className="px-5 py-4"><Link href={`/repositories/${encodeURIComponent(row.repository.owner)}/${encodeURIComponent(row.repository.name)}${branchScope === "all" ? "?branches=all" : ""}`} className="text-sm font-semibold hover:text-[var(--accent)]">{row.repository.name}</Link><span className="muted ml-2">{row.repository.language ?? "—"}</span></td><td className="mono px-3">{row.metrics.today.commits}</td><td className="mono px-3">{row.metrics.week.commits}</td><td className="mono px-3">{row.metrics.month.commits}</td><td className="mono px-3">{metrics.commits}</td><td className="mono px-3 text-[var(--accent)]">+{metrics.additions}</td><td className="mono px-3 text-[var(--red)]">−{metrics.deletions}</td><td className="mono px-3">{metrics.changedFiles}</td><td className="mono px-3">{metrics.activeDays}</td><td className="mono px-3 font-bold">{metrics.score.toFixed(1)}</td><td className="mono px-3">{movement.value}x</td><td className="muted whitespace-nowrap px-3">{dateFmt(row.repository.pushedAt)}</td></tr>; })}</tbody>
         </table>
       </div>
     </section>
@@ -269,7 +332,7 @@ export function Dashboard({ data, initialPeriod }: { data: DashboardData; initia
       <SectionHeading index="05" title={text.profile} sub={text.diagnostics} />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Panel title={text.commitSize}><Bars items={data.analysis.commitSizes[period].map((bucket) => ({ label: `${bucket.key} · ${bucket.label}`, value: bucket.count, text: String(bucket.count) }))} /></Panel>
-        <Panel title={text.dayHour}><div className="grid grid-cols-5 gap-1.5 text-center text-[.6875rem]"><span />{slots.map((slot) => <span key={slot} className="muted">{slot}</span>)}{days.flatMap((day, dayIndex) => [<span key={day} className="muted py-1.5 text-left">{day}</span>, ...data.analysis.dayHour[period].filter((cell) => cell.day === dayIndex).map((cell) => <span key={`${dayIndex}-${cell.slot}`} title={`${day} ${slots[cell.slot]}: ${cell.commits}`} className="rounded py-1.5" style={{ background: cell.commits ? `color-mix(in srgb, var(--cyan) ${18 + cell.commits / maxHour * 70}%, var(--panel-strong))` : "var(--panel-strong)" }}>{cell.commits}</span>)])}</div><div className="mt-5 border-t hairline pt-4"><p className="muted mb-2 text-xs">{text.activePattern}</p><div className="flex h-12 items-end gap-1.5">{days.map((day, index) => <div key={day} className="flex flex-1 flex-col items-center justify-end"><div className="w-full rounded-t-sm bg-[var(--cyan)]" style={{ height: `${Math.max(2, anomaly.weekdayActivity[index] / maxWeekday * 32)}px`, opacity: .35 + anomaly.weekdayActivity[index] / maxWeekday * .65 }} /><span className="muted mt-1 text-[.625rem]">{day}</span></div>)}</div></div></Panel>
+        <Panel title={text.dayHour} sub={`${localizedPeriods.find(item => item.key === period)?.label} · ${locale === "ja" ? "日本時間" : "JST"}`}><div className="grid grid-cols-5 gap-1.5 text-center text-[.6875rem]"><span />{slots.map((slot) => <span key={slot} className="muted">{slot}</span>)}{days.flatMap((day, dayIndex) => [<span key={day} className="muted py-1.5 text-left">{day}</span>, ...data.analysis.dayHour[period].filter((cell) => cell.day === dayIndex).map((cell) => <span key={`${dayIndex}-${cell.slot}`} title={`${day} ${slots[cell.slot]}: ${cell.commits}`} className="rounded py-1.5" style={{ background: cell.commits ? `color-mix(in srgb, var(--cyan) ${18 + cell.commits / maxHour * 70}%, var(--panel-strong))` : "var(--panel-strong)" }}>{cell.commits}</span>)])}</div><div className="mt-5 border-t hairline pt-4"><p className="muted mb-2 text-xs">{text.activePattern}</p><div className="flex h-12 items-end gap-1.5">{days.map((day, index) => <div key={day} className="flex flex-1 flex-col items-center justify-end"><div className="w-full rounded-t-sm bg-[var(--cyan)]" style={{ height: `${Math.max(2, weekdayActivity[index] / maxWeekday * 32)}px`, opacity: .35 + weekdayActivity[index] / maxWeekday * .65 }} /><span className="muted mt-1 text-[.625rem]">{day}</span></div>)}</div></div></Panel>
         <Panel title={text.language}><Bars items={data.analysis.languages[period].map((language) => ({ label: locale === "ja" && language.language === "Other" ? "その他" : language.language, value: language.score, text: `${language.share}%`, color: "var(--violet)" }))} /></Panel>
         <Panel title={text.wow}><table className="w-full text-xs"><thead className="muted"><tr><th className="pb-2 text-left font-normal">{locale === "ja" ? "指標" : "Metric"}</th><th className="pb-2 font-normal">{locale === "ja" ? "今週" : "This"}</th><th className="pb-2 font-normal">{locale === "ja" ? "前週" : "Last"}</th><th className="pb-2 text-right font-normal">Δ</th></tr></thead><tbody>{data.analysis.weekComparison.map((row) => <tr key={row.key} className="border-t hairline"><td className="py-2.5">{locale === "ja" ? ({commits:"コミット",lines:"変更行数",files:"変更ファイル",days:"活動日数",repos:"活動リポジトリ"} as Record<string,string>)[row.key] : row.label}</td><td className="mono text-center">{compact.format(row.current)}</td><td className="mono text-center">{compact.format(row.previous)}</td><td className="mono text-right" style={{ color: (row.change ?? 0) >= 0 ? "var(--accent)" : "var(--red)" }}>{row.change === null ? (locale === "ja" ? "新規" : "NEW") : `${row.change >= 0 ? "+" : ""}${row.change}${row.absolute ? "" : "%"}`}</td></tr>)}</tbody></table><div className="mt-4 grid grid-cols-3 gap-2 border-t hairline pt-4 text-[.6875rem]">{[[locale === "ja" ? "増加" : "Increase", anomaly.weekHighlights.increase], [locale === "ja" ? "減少" : "Decrease", anomaly.weekHighlights.decrease], [locale === "ja" ? "安定" : "Stable", anomaly.weekHighlights.stable]].map(([label, value]) => { const highlight = value as { repository: string; change: number } | undefined; return <span key={label as string} className="truncate"><i className="muted block not-italic">{label as string}</i>{highlight?.repository ?? "—"}</span>; })}</div></Panel>
       </div>

@@ -6,7 +6,7 @@ import { buildAnomalyAnalysis, detectBurst } from "./build-change-feed";
 const now=new Date("2026-09-11T03:00:00Z");
 let sequence=0;
 const commit=(date:string,lines=20,repo="o/r"):CommitActivity=>({sha:String(sequence++),repository:repo,authoredAt:date,message:"change",additions:lines,deletions:0,changedFiles:1,url:"https://github.com/o/r"});
-const repo=(name:string,commits:CommitActivity[]):RepositoryActivity=>({repository:{id:sequence++,owner:"o",name,fullName:`o/${name}`,private:false,url:`https://github.com/o/${name}`,defaultBranch:"main",updatedAt:now.toISOString(),pushedAt:now.toISOString(),language:"TypeScript",archived:false,fork:false},commits,metrics:{today:aggregateMetrics(commits,"today",now),week:aggregateMetrics(commits,"week",now),month:aggregateMetrics(commits,"month",now)}});
+const repo=(name:string,commits:CommitActivity[]):RepositoryActivity=>({repository:{id:sequence++,owner:"o",name,fullName:`o/${name}`,private:false,url:`https://github.com/o/${name}`,defaultBranch:"main",updatedAt:now.toISOString(),pushedAt:now.toISOString(),language:"TypeScript",archived:false,fork:false},commits,metrics:{today:aggregateMetrics(commits,"today",now),week:aggregateMetrics(commits,"week",now),month:aggregateMetrics(commits,"month",now),quarter:aggregateMetrics(commits,"quarter",now)}});
 
 describe("change and anomaly detection",()=>{
   it("detects a 60-minute commit burst",()=>{const items=Array.from({length:5},(_,i)=>commit(`2026-09-10T15:${String(i*5).padStart(2,"0")}:00Z`));expect(detectBurst(items)).toEqual({count:5,minutes:60})});

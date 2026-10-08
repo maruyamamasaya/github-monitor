@@ -1,6 +1,6 @@
 import type { DevelopmentSnapshot, PeriodKey } from "@/types/activity";
 
-const labels: Record<PeriodKey,string> = { today: "Today", week: "Last 7 days", month: "Last 30 days" };
+const labels: Record<PeriodKey,string> = { today: "Today", week: "Last 7 days", month: "Last 30 days", quarter: "Last 90 days" };
 const number = new Intl.NumberFormat("en-US");
 export function buildProfileSummary(snapshot: DevelopmentSnapshot, period: PeriodKey) {
   return `${labels[period]}: ${number.format(snapshot.meaningfulChangedLines)} lines changed · ${number.format(snapshot.commits)} commits · ${number.format(snapshot.activeRepositories)} repositories · ${number.format(snapshot.activeDays)} active days`;
