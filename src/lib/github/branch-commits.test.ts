@@ -9,6 +9,18 @@ function budget(max = 200) { let remaining = max; return { reserveRequest() { if
 const fetcher = (handler: (path: string) => unknown) => { const calls = vi.fn(handler); return { calls, fetch: async <T>(path: string) => calls(path) as T }; };
 
 describe("branch commit listing", () => {
+  it("reports branch progress across batches, counting aliases and leaving incomplete totals unknown", async () => {
+    const api = fetcher(path => path.includes("/branches?") ? [{ name: "main", commit: { sha: "a" } }, { name: "alias", commit: { sha: "a" } }, { name: "work", commit: { sha: "b" } }] : []);
+    const branchHeads: Record<string, BranchHeadSnapshot> = {};
+    const onBranchProgress = vi.fn();
+    await listBranchCommits(repo, "octo", since, "all", api.fetch, { ...budget(2), branchHeads, onBranchProgress });
+    expect(onBranchProgress).toHaveBeenLastCalledWith({ completedBranches: 2, totalBranches: 3 });
+    await listBranchCommits(repo, "octo", since, "all", api.fetch, { ...budget(2), branchHeads, onBranchProgress });
+    expect(onBranchProgress).toHaveBeenLastCalledWith({ completedBranches: 3, totalBranches: 3 });
+    const paginated = fetcher(() => Array.from({ length: 100 }, (_, i) => ({ name: `b${i}`, commit: { sha: "a" } })));
+    await listBranchCommits(repo, "octo", since, "all", paginated.fetch, { ...budget(1), branchHeads, onBranchProgress });
+    expect(onBranchProgress).toHaveBeenLastCalledWith({ completedBranches: 100, totalBranches: null });
+  });
   it("persists completed head scans so the next budget-limited sync progresses instead of starting over", async () => {
     const api = fetcher((path) => path.includes("/branches?") ? [{ name: "main", commit: { sha: "a" } }, { name: "work", commit: { sha: "b" } }] : [{ sha: path.includes("sha=a") ? "main-commit" : "work-commit" }]);
     const branchHeads: Record<string, BranchHeadSnapshot> = {};

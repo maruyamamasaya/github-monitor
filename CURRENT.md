@@ -49,6 +49,9 @@ v1.2のAPI効率を維持し、Development Snapshot、Meaningful LOC、file comp
 
 - 取得状況は原因と次の操作を表示する。取得上限は待たずに「続きを取得」、GitHub制限は待機、利用枠不足は回復予定時刻を案内する。Repository一覧と技術情報は詳細ログへ格納し、409で集計対象外のRepositoryは未完了件数に含めない。
 
+- 全ブランチの未完了Repositoryにブランチ確認済み数・総数・残数を表示する。一覧取得途中は総数未確定とし、進捗はcacheへ保存する。
+- `/data`でRepository別の保存済みcommit一覧・取得状況・最終同期日時を確認できる。branch scope切替と50件paginationに対応し、このページはGitHub APIを呼ばない。
+
 ## In Progress
 
 - None.

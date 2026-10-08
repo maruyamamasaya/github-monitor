@@ -19,17 +19,31 @@ export async function listBranchCommits(repo: Repository, username: string | str
   };
   const authors = [...new Set(typeof username === "string" ? [username] : username)];
   const branches: Branch[] = [];
+  const completedRefs = new Set<string>();
+  let branchListComplete = false;
+  const reportProgress = () => {
+    if (scope === "all") context.onBranchProgress?.({
+      completedBranches: branches.filter(branch => completedRefs.has(branch.commit.sha)).length,
+      totalBranches: branchListComplete ? branches.length : null,
+    });
+  };
   if (scope === "all") {
+    reportProgress();
     for (let page = 1; ; page++) {
       const batch = await request<Branch[]>(`${base}/branches?per_page=100&page=${page}`);
       if (!batch) break;
       branches.push(...batch);
-      if (batch.length < 100) break;
+      if (batch.length < 100) { branchListComplete = true; break; }
     }
     // Scan the default branch first and skip identical tips to avoid duplicate walks.
     branches.sort((a, b) => Number(b.name === repo.defaultBranch) - Number(a.name === repo.defaultBranch));
   }
   const refs = scope === "all" ? [...new Set(branches.map((branch) => branch.commit.sha))] : [repo.defaultBranch];
+  for (const ref of refs) {
+    const cached = context.branchHeads?.[ref];
+    if (cached && cached.since <= since) completedRefs.add(ref);
+  }
+  reportProgress();
   if (scope === "all" && complete && context.branchHeads) {
     const reachable = new Set(refs);
     for (const ref of Object.keys(context.branchHeads)) if (!reachable.has(ref)) delete context.branchHeads[ref];
@@ -66,6 +80,7 @@ export async function listBranchCommits(repo: Repository, username: string | str
       if (!authorComplete) { headComplete = false; complete = false; break; }
     }
     if (scope === "all" && headComplete && context.branchHeads) context.branchHeads[ref] = { since, items: headItems };
+    if (headComplete) { completedRefs.add(ref); reportProgress(); }
     if (items.size >= 1000) break;
   }
   return { items: [...items.values()], requests, complete };

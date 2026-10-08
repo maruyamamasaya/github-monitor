@@ -191,6 +191,7 @@ export function Dashboard({ data: allData, codeData, initialPeriod, initialScope
         <button type="button" className="chip control" onClick={refreshDashboard} disabled={isRefreshing} aria-busy={isRefreshing}>
           {isRefreshing ? (locale === "ja" ? "更新中…" : "Refreshing…") : (locale === "ja" ? "最新情報に更新" : "Refresh")}
         </button>
+        <Link href={`/data?branches=${branchScope}`} className="chip control">{locale === "ja" ? "取得済みデータ" : "Fetched data"}</Link>
       </div>
     </header>
 
@@ -224,6 +225,14 @@ export function Dashboard({ data: allData, codeData, initialPeriod, initialScope
     {data.warnings.length > 0 && <div className="warning mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm" role="status">
       <p className="font-semibold">{syncMessage.title}</p>
       <p className="mt-2 leading-6">{syncMessage.explanation}</p>
+      {!!data.syncStatus.branchProgress?.length && <div className="mt-2 space-y-1 text-xs leading-5">
+        <p>{locale === "ja" ? "古いブランチも含め、各ブランチの直近90日を確認しています。同じ先端を持つブランチはまとめて確認します。" : "Each branch is checked for the last 90 days, including older branches. Branches with the same tip are checked together."}</p>
+        <ul className="space-y-1 break-words">{data.syncStatus.branchProgress.map(progress => <li key={progress.repository}>
+          <span className="font-semibold">{progress.repository}</span>{" — "}
+          {locale === "ja" ? progress.totalBranches === null ? `ブランチ一覧を取得中（確認済み ${fmt.format(progress.completedBranches)}件・総数は未確定）` : `ブランチ確認 ${fmt.format(progress.completedBranches)} / ${fmt.format(progress.totalBranches)}件（残り ${fmt.format(progress.totalBranches - progress.completedBranches)}件）` : progress.totalBranches === null ? `Loading branch list (${fmt.format(progress.completedBranches)} checked; total unknown)` : `Branches checked: ${fmt.format(progress.completedBranches)} / ${fmt.format(progress.totalBranches)} (${fmt.format(progress.totalBranches - progress.completedBranches)} remaining)`}
+          {progress.totalBranches !== null && progress.completedBranches === progress.totalBranches && <span>{locale === "ja" ? "・commit詳細などの取得は確認途中" : "; commit details or other fetching remains incomplete"}</span>}
+        </li>)}</ul>
+      </div>}
       <p className="mt-1 leading-6">{syncMessage.action}</p>
       {data.syncStatus.pauseReason === "quota" && data.rateLimit && <p className="mt-2">{locale === "ja" ? "利用枠の回復予定" : "Quota resets"}: {dateFmt(data.rateLimit.resetAt)} JST</p>}
       {syncMessage.retry && <button type="button" className="control mt-3" onClick={refreshDashboard} disabled={isRefreshing}>{isRefreshing ? (locale === "ja" ? "更新中…" : "Refreshing…") : data.syncStatus.pauseReason === "budget" ? (locale === "ja" ? "続きを取得" : "Continue fetching") : (locale === "ja" ? "再試行" : "Retry")}</button>}

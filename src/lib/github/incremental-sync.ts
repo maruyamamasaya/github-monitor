@@ -1,9 +1,9 @@
-import type { CommitActivity, Repository } from "@/types/activity";
+import type { BranchScanProgress, CommitActivity, Repository } from "@/types/activity";
 import type { BranchHeadSnapshot, CachedRepository, CommitCacheStore } from "./commit-cache";
 import { ACTIVE_SYNC_TTL_MS, COMMIT_DETAIL_CONCURRENCY, FILE_DETAIL_BACKFILL_BATCH, FILE_DETAIL_BACKFILL_MIN_REMAINING, FILE_DETAIL_BACKFILL_TTL_MS, HISTORY_DAYS, INACTIVE_AFTER_DAYS, INACTIVE_SYNC_TTL_MS, LOW_RATE_LIMIT_REMAINING, MAX_REQUESTS_PER_SYNC, REPOSITORY_CONCURRENCY, SYNC_OVERLAP_DAYS } from "./sync-config";
 
 export type CommitSummary = { sha: string; authoredAt?: string };
-export type ListContext = { reserveRequest(): boolean; branchHeads?: Record<string, BranchHeadSnapshot> };
+export type ListContext = { reserveRequest(): boolean; branchHeads?: Record<string, BranchHeadSnapshot>; onBranchProgress?(progress: BranchScanProgress): void };
 export type SyncApi = { list(repo: Repository, since: string, context: ListContext): Promise<{ items: CommitSummary[]; requests: number; complete?: boolean }>; detail(repo: Repository, summary: CommitSummary): Promise<CommitActivity> };
 export type SyncMetrics = { apiRequests: number; cacheHits: number; newCommitsFetched: number; commitDetailsFetched: number; fileDetailsBackfilled: number; budgetRemaining: number; cold: boolean };
 
@@ -21,7 +21,7 @@ export async function syncCommits(repositories: Repository[], rateRemaining: num
     if (JSON.stringify(cache.authors ?? (authors.length === 1 ? authors : [])) !== JSON.stringify(authors)) {
       for (const state of Object.values(cache.repositories)) {
         state.lastSyncedAt = null; state.lastCheckedAt = null; state.partial = true;
-        state.branchHeads = {}; state.lastFailure = null;
+        state.branchHeads = {}; state.branchProgress = undefined; state.lastFailure = null;
       }
     }
     cache.authors = authors;
@@ -63,7 +63,7 @@ export async function syncCommits(repositories: Repository[], rateRemaining: num
     let reserved = 0;
     if (options.fullHistory) current.branchHeads ??= {};
     try {
-      const result = await api.list(repo, since.toISOString(), { branchHeads: current.branchHeads, reserveRequest() {
+      const result = await api.list(repo, since.toISOString(), { branchHeads: current.branchHeads, onBranchProgress(progress) { current.branchProgress = progress; }, reserveRequest() {
         if (rateBlocked || metrics.budgetRemaining <= 0) return false;
         metrics.budgetRemaining--; metrics.apiRequests++; reserved++;
         return true;
@@ -134,10 +134,14 @@ export async function syncCommits(repositories: Repository[], rateRemaining: num
   if (lowRate) warnings.push(`GitHub rate limit remainingが${LOW_RATE_LIMIT_REMAINING}未満のためcached dataを使用しました。`);
   const partial = repositories.filter((repo) => cache.repositories[repo.fullName]?.lastFailure?.status !== 409 && (cache.repositories[repo.fullName]?.partial || (!cache.repositories[repo.fullName]?.lastSyncedAt && !cache.repositories[repo.fullName]?.lastFailure)));
   if (partial.length) warnings.push(`${partial.length}件のRepositoryはAPI取得上限・取得失敗により部分取得です（${partial.map((repo) => repo.fullName).join(", ")}）。表示は取得済みデータのみで、次回更新時に再試行します。`);
+  const branchProgress = options.fullHistory ? partial.flatMap(repo => {
+    const progress = cache.repositories[repo.fullName]?.branchProgress;
+    return progress ? [{ repository: repo.fullName, ...progress }] : [];
+  }) : [];
   await store.write(cache);
   const failedRepositories = repositories.flatMap((repo) => {
     const failure = cache.repositories[repo.fullName]?.lastFailure;
     return failure ? [{ name: repo.fullName, status: failure.status, at: failure.at, excluded: failure.status === 409 }] : [];
   });
-  return { commitsByRepository: Object.fromEntries(repositories.map((repo) => [repo.fullName, Object.values(cache.repositories[repo.fullName]?.commits ?? {})])), metrics, warnings, failedRepositories, syncStatus: { pendingRepositories: partial.length, pauseReason: lowRate ? "quota" as const : rateBlocked || failedRepositories.some(item => item.status === 403 || item.status === 429) ? "rate-limit" as const : metrics.budgetRemaining <= 0 && partial.length > 0 ? "budget" as const : null, detailFailures } };
+  return { commitsByRepository: Object.fromEntries(repositories.map((repo) => [repo.fullName, Object.values(cache.repositories[repo.fullName]?.commits ?? {})])), metrics, warnings, failedRepositories, syncStatus: { pendingRepositories: partial.length, branchProgress, pauseReason: lowRate ? "quota" as const : rateBlocked || failedRepositories.some(item => item.status === 403 || item.status === 429) ? "rate-limit" as const : metrics.budgetRemaining <= 0 && partial.length > 0 ? "budget" as const : null, detailFailures } };
 }

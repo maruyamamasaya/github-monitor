@@ -93,7 +93,8 @@ export type CockpitAnalysis = {
   development: DevelopmentAnalysis;
 };
 
-export type SyncStatus = { pendingRepositories: number; pauseReason: "budget" | "quota" | "rate-limit" | null; detailFailures: number };
+export type BranchScanProgress = { completedBranches: number; totalBranches: number | null };
+export type SyncStatus = { pendingRepositories: number; pauseReason: "budget" | "quota" | "rate-limit" | null; detailFailures: number; branchProgress?: (BranchScanProgress & { repository: string })[] };
 
 export type DashboardData = {
   syncStatus: SyncStatus;

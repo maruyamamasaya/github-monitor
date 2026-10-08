@@ -10,6 +10,7 @@ GitHubを正本とし、`.next/cache/github-monitor/commits.json`へversioned JS
 - `CachedRepository.partial`: 一覧・detail取得が未完了であることを示す。partial時は次回更新でTTLを待たず再試行し、完全取得後に解除する。一覧未完了時は同期cursorを進めず過去cacheを維持する。
 - `CachedRepository.branchHeads`: 全ブランチで走査完了したhead SHAから`since`とcommit SHA/author日時一覧へのmap。未完了headは登録しない。不変headの履歴再取得を避け、budgetによる中断後も次のheadへ進める。
 - `CachedRepository.lastAttemptedAt`: 実際に同期を試行した時刻。全ブランチでは未着手を優先し、残る部分取得を古い試行順に再開する。
+- `CachedRepository.branchProgress`: 全ブランチの確認済みbranch数と総branch数。走査完了headを持つbranchを数え、同一headの別名branchもそれぞれ数える。branch一覧未完了時の総数はnull。旧cacheでは次回走査から保存する。Dashboardでは未完了Repositoryの進捗として表示する。
 
 - `Repository`: id、owner、name、visibility、URL、default branch、updated/pushed時刻、language、archived、fork。
 - `CommitActivity`: SHA、Repository、author日時、message、additions、deletions、changedFiles、任意のfile detail（filename/status/additions/deletions/changes）、URL。

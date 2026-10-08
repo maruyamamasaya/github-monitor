@@ -37,12 +37,15 @@ GitHub API 409時の失敗記録、24時間の再試行間隔、成功時の記�
 複数作者の正規化、作者間SHA重複除外、作者走査途中のbudget中断、作者集合変更時の90日再照合と既知detail再利用を検証する。
 
 取得上限では即時の継続を案内し、GitHub制限・利用枠不足では待機を案内する。作者追加後も409対象を未完了件数から除外することを検証する。
+branch進捗は同一headの別名を含めたbranch数、budget中断後の再開、一覧未完了時の総数未確定、quota停止時の保存済み進捗維持を検証する。
 
 ## Integration / E2E
 
 自動E2Eはv1初期版では未導入。GitHub live APIは手動smoke testに限定する。
 
 ## Manual Verification
+
+- 取得済みデータページのRepository選択・branch scope切替・commit pagination・空cache・部分取得状況。閲覧時にGitHub API取得がないこと。
 
 - Token未設定、無効Token、空Repository、部分API失敗。
 - Today/7/30/90切替と再読み込み後の選択、Trend chartで今日の日付が見えること、GitHub link、狭いviewport。

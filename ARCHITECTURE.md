@@ -49,6 +49,8 @@ Next.js App RouterのServer ComponentがGitHub REST APIからデータを差分�
 
 ## External Services
 
+`/data`は選択branch scopeのJSON cacheをServer側で読み、Repository選択・50件pagination付きのcommit一覧と取得状況を表示する。追加API・同期は行わず、更新はDashboardから行う。
+
 GitHub REST APIのみ。Repository metadata、commits、commit detail、rate limitを取得する。
 
 ## Deployment

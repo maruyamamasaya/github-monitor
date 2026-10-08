@@ -14,6 +14,17 @@ function memoryStore(initial?: CommitCache) {
 const cached = (lastSyncedAt = "2026-09-11T05:00:00.000Z", lastCheckedAt = "2026-09-11T05:00:00.000Z"): CommitCache => ({ version: 1, lastFileDetailBackfillAt: now.toISOString(), repositories: { "octo/app": { commits: { old: commit("old") }, lastSyncedAt, lastCheckedAt } } });
 
 describe("incremental commit sync", () => {
+  it("persists branch progress and exposes it while pending even when quota pauses the next update", async () => {
+    const memory = memoryStore();
+    const api = { list: async (_repo: Repository, _since: string, context: import("./incremental-sync").ListContext) => {
+      context.reserveRequest(); context.onBranchProgress?.({ completedBranches: 2, totalBranches: 5 });
+      return { items: [], requests: 1, complete: false };
+    }, detail: vi.fn() };
+    const first = await syncCommits([repo()], 5000, api, memory.store, now, 1, { fullHistory: true });
+    expect(first.syncStatus.branchProgress).toEqual([{ repository: "octo/app", completedBranches: 2, totalBranches: 5 }]);
+    const paused = await syncCommits([repo()], 100, api, memory.store, now, 200, { fullHistory: true });
+    expect(paused.syncStatus.branchProgress).toEqual(first.syncStatus.branchProgress);
+  });
   it("prioritizes unstarted repositories before large partial scans", async () => {
     const initial = cached();
     initial.repositories["octo/app"].partial = true;
