@@ -5,7 +5,7 @@ import { analyzeCockpit } from "@/lib/analytics/cockpit";
 import type { BranchScope, DashboardData, RateLimit, Repository, RepositoryActivity } from "@/types/activity";
 import { getGitHubConfig, githubFetch } from "./client";
 import { toCommitActivity, toRepository } from "./transform";
-import path from "node:path";
+import { githubDataPath } from "./data-path";
 import { listBranchCommits } from "./branch-commits";
 import { createFileCommitCache, withCommitCacheLock } from "./commit-cache";
 import { syncCommits } from "./incremental-sync";
@@ -41,7 +41,7 @@ async function loadDashboardUncached(branchScope: BranchScope = "default"): Prom
   } catch { warnings.push("GitHub API rate limitを取得できませんでした。"); }
   const synced = await withCommitCacheLock(async () => {
     const defaultStore = createFileCommitCache();
-    const allStore = createFileCommitCache(path.join(process.cwd(), ".next", "cache", "github-monitor", "commits-all-branches.json"));
+    const allStore = createFileCommitCache(githubDataPath("commits-all-branches.json"));
     const reusable = await (branchScope === "all" ? defaultStore : allStore).read();
     return syncCommits(repositories, rateLimit?.remaining ?? null, {
       async list(repo, since, context) {

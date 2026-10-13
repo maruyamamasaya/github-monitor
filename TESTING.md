@@ -62,3 +62,5 @@ branch進捗は同一headの別名を含めたbranch数、budget中断後の再�
 - Typecheck: `npm run typecheck`
 - Unit: `npm test`
 - Build: `npm run build`
+- Desktop transfer: `npm run test:desktop`（SHA detail・同期状態・両scope保持、token除外、上書き/不正形式拒否）
+- Desktop build/packageとnative確認: `DESKTOP.md`。

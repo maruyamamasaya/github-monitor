@@ -1,12 +1,13 @@
 import "server-only";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { githubDataPath } from "./data-path";
 import { GitHubApiError, githubFetch } from "./client";
 import { listRepositories } from "./dashboard";
 import { withCommitCacheLock } from "./commit-cache";
 import { emptySourceSizeCache, summarizeSourceSize, syncSourceSize, type SourceSizeCache } from "./source-size-sync";
 
-const file = path.join(process.cwd(), ".next", "cache", "github-monitor", "source-size.json");
+const file = githubDataPath("source-size.json");
 
 async function readCache(): Promise<SourceSizeCache> {
   try {

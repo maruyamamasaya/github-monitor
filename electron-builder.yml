@@ -1,0 +1,23 @@
+appId: jp.maruyamamasaya.github-monitor
+productName: GitHub Monitor
+directories:
+  output: release
+files:
+  - desktop/*.cjs
+  - '!desktop/*.node-test.cjs'
+  - package.json
+extraResources:
+  - from: desktop/server
+    to: server
+asar: true
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - dmg
+    - zip
+win:
+  target: nsis
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true

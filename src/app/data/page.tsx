@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import path from "node:path";
+import { githubDataPath } from "@/lib/github/data-path";
 import { createFileCommitCache } from "@/lib/github/commit-cache";
 import { groupAcquiredDays } from "@/lib/analytics/acquired-days";
 
@@ -11,7 +11,7 @@ export default async function AcquiredDataPage({ searchParams }: { searchParams:
   const scope = params.branches === "all" ? "all" : "default";
   const view = params.view === "day" ? "day" : "repository";
   const ja = (await cookies()).get("github-monitor-locale")?.value !== "en";
-  const cache = await createFileCommitCache(scope === "all" ? path.join(process.cwd(), ".next", "cache", "github-monitor", "commits-all-branches.json") : undefined).read();
+  const cache = await createFileCommitCache(scope === "all" ? githubDataPath("commits-all-branches.json") : undefined).read();
   const excluded = new Set((process.env.GITHUB_EXCLUDED_REPOS ?? "").split(",").map(value => value.trim().toLowerCase()).filter(Boolean));
   const names = Object.keys(cache.repositories).filter(name => !excluded.has(name.toLowerCase()) && !excluded.has(name.split("/")[1]?.toLowerCase())).sort();
   const selected = params.repository && names.includes(params.repository) ? params.repository : view === "day" ? "all" : names[0];

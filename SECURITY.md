@@ -10,6 +10,7 @@ GitHub Personal Access TokenでGitHub APIを認証する。Application独自の�
 - `.env.example`には空値だけを置く。
 - TokenをClient Component、HTML、URL、例外message、ログへ渡さない。
 - fine-grained tokenと最小限のread-only Repository権限を推奨し、不要時は失効する。
+- Desktop接続設定はmain processで許可した環境変数だけを読み、Electron safeStorageで暗号化してuserDataへ保存する。rendererにNode権限・preload bridgeは与えない。設定やcacheを配布物へ含めず、移行JSONへtokenを含めない。
 
 ## Sensitive Data
 
@@ -25,7 +26,7 @@ Private Repository名、commit message、活動情報は機密になり得る。
 
 ## Dependencies
 
-依存はNext.js/React/Tailwind/Vitestへ限定し、lockfileを管理し、release前にauditと更新状況を確認する。
+依存はNext.js/React/Tailwind/VitestおよびDesktop用Electron/electron-builderを使い、lockfileを管理し、release前にauditと更新状況を確認する。
 
 ## Security Review
 

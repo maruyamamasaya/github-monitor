@@ -59,6 +59,8 @@ GitHub REST APIのみ。Repository metadata、commits、commit detail、rate lim
 
 Node.js runtime。ローカルまたはNext.js対応hostで環境変数を設定して稼働する。
 
+Desktop版はElectronのsandboxed BrowserWindowとutility process内のNext.js standalone serverで動く。serverは127.0.0.1の動的portへ限定し、終了時に停止する。Next runtimeもuserData内で稼働し、installation directoryへの書き込みは不要。Windows NSIS・Mac DMG/ZIPのパッケージと手動実行CIを用意する。移行・設定・配布手順は`DESKTOP.md`。
+
 ## Key Constraints
 
 - API tokenはServer限定。

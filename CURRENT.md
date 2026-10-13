@@ -59,7 +59,9 @@ v1.2のAPI効率を維持し、Development Snapshot、Meaningful LOC、file comp
 
 ## In Progress
 
-- None.
+- Windows / macOS Desktop対応。Electronで既存Next.js画面を起動し、取得済みデータのJSON移行・OS暗号化接続設定・端末別永続保存を実装。Mac実機確認と配布署名は未実施。操作手順は`DESKTOP.md`。
+
+- Desktopのlint/typecheck、既存108 Unit Tests、移行テスト、standalone build、Windowsで移行済みデータの両scope・日別描画、再起動後の保持とserver終了を確認。Windows NSIS installerを生成済み。production依存のaudit指摘0件。開発・パッケージ用依存にはaudit指摘が残る。
 
 ## Known Issues
 

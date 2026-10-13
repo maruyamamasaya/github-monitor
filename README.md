@@ -20,7 +20,7 @@
 
 ## Setup
 
-Node.js 20.9以降を用意し、依存関係をinstallします。
+Node.js 22.12以降を用意し、依存関係をinstallします。Windows・Macアプリの起動と取得済みデータの移行は[DESKTOP.md](DESKTOP.md)を参照してください。
 
 ```bash
 npm install

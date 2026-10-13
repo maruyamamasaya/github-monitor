@@ -4,6 +4,8 @@
 
 GitHubを正本とし、`.next/cache/github-monitor/commits.json`へversioned JSON形式でcommit detailと同期状態を保存する。SHAをRepository内の一意keyとし、手動migrationは不要。30〜50 Repository規模ではnative dependencyを追加するSQLiteより導入・運用が軽いためJSONを採用し、store interfaceにより将来のSQLite移行余地を保つ。
 
+Desktop版は`GITHUB_MONITOR_DATA_DIR`でElectron userData配下の`data`を指定し、両branch scopeとsource-sizeを同じ保存基盤で扱う。transfer JSONはversion付きの3種cacheだけを含み、tokenを含めない。空の端末へだけ取り込み、同期進捗・authors・SHA detail・branch headをそのまま継承する。端末間の常時同期は行わない。90日保持の仕様は維持する。
+
 ## Runtime Models
 
 - `BranchScope`: `default` / `all`。defaultは既存`commits.json`、allは`commits-all-branches.json`へ保存し、所属履歴が混ざらないようにする。同じSHAのdetailはscope間で再利用する。

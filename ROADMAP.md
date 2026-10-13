@@ -19,7 +19,8 @@
 
 - AI週次要約、期間比較、streak、停止Repository、message分類。
 - PR/Issue、language別、project trend、local Git解析。
+- Desktop対応はユーザー依頼により先行実装。Windows/Macのnative確認と署名・公証を進める。
 
 ## Deferred / Won't Do in v1
 
-Supabase、ユーザー認証、複数Account、Organization/Team分析、通知、開発時間推定、SaaS、Desktop/Mobile app。
+Supabase、ユーザー認証、複数Account、Organization/Team分析、通知、開発時間推定、SaaS、Mobile app。

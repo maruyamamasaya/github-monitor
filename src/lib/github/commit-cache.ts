@@ -1,6 +1,7 @@
 import "server-only";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { githubDataPath } from "./data-path";
 import type { BranchScanProgress, CommitActivity } from "@/types/activity";
 
 export type BranchHeadSnapshot = { since: string; items: { sha: string; authoredAt?: string }[] };
@@ -17,7 +18,7 @@ export function withCommitCacheLock<T>(task: () => Promise<T>): Promise<T> {
   return run;
 }
 
-export function createFileCommitCache(file = path.join(process.cwd(), ".next", "cache", "github-monitor", "commits.json")): CommitCacheStore {
+export function createFileCommitCache(file = githubDataPath("commits.json")): CommitCacheStore {
   return {
     async read() {
       try {
