@@ -9,13 +9,19 @@ files:
 extraResources:
   - from: desktop/server
     to: server
+  - from: desktop/server/node_modules
+    to: server/node_modules
+    filter:
+      - '**/*'
 asar: true
 mac:
+  icon: desktop/assets/app-icon.icns
   category: public.app-category.developer-tools
   target:
     - dmg
     - zip
 win:
+  icon: desktop/assets/app-icon.ico
   target: nsis
 nsis:
   oneClick: false

@@ -59,7 +59,11 @@ v1.2のAPI効率を維持し、Development Snapshot、Meaningful LOC、file comp
 
 ## In Progress
 
-- Windows / macOS Desktop対応。Electronで既存Next.js画面を起動し、取得済みデータのJSON移行・OS暗号化接続設定・端末別永続保存を実装。Mac実機確認と配布署名は未実施。操作手順は`DESKTOP.md`。
+- Desktop用の抽象的なアプリアイコンを用意し、Windows ICO・Mac ICNSを配布設定へ指定。複数Repositoryの活動が合流する流れを、ネイビー背景とライム・シアンの軌道で表現する。
+
+- Macの通常起動でサーバー依存が配布物から欠落する不具合を修正。依存を明示同梱し、検証で配布物内の依存解決を確認する。smoke testは作業フォルダ外の新規profileを使い、既存runtime・Repository依存による見逃しを防ぐ。Applicationsへ更新した実アプリの通常起動とデータ画面を確認済み。
+
+- Windows / macOS Desktop対応。Electronで既存Next.js画面を起動し、取得済みデータのJSON移行・OS暗号化接続設定・端末別永続保存を実装。Mac Apple Siliconの署名なしapp・DMG・ZIPを生成し、パッケージ本体の両scope・日別描画、再起動後の保持とserver終了を確認。接続設定の読み込み・live同期および配布署名は未確認。操作手順は`DESKTOP.md`。
 
 - Desktopのlint/typecheck、既存108 Unit Tests、移行テスト、standalone build、Windowsで移行済みデータの両scope・日別描画、再起動後の保持とserver終了を確認。Windows NSIS installerを生成済み。production依存のaudit指摘0件。開発・パッケージ用依存にはaudit指摘が残る。
 

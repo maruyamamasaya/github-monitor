@@ -15,5 +15,10 @@ function check(directory) {
     }
   }
 }
-check(path.join(__dirname, 'server'));
+const serverDirectory = path.resolve(process.argv[2] || path.join(__dirname, 'server'));
+for (const dependency of ['next', 'react', 'react-dom']) {
+  const resolved = require.resolve(dependency, { paths: [serverDirectory] });
+  if (!resolved.startsWith(serverDirectory + path.sep)) throw new Error('Server dependency missing from distribution: ' + dependency);
+}
+check(serverDirectory);
 console.log('Desktop server verified: no environment files, personal cache, or configured token.');

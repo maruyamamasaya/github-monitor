@@ -2,10 +2,14 @@ const { app, BrowserWindow, Menu, dialog, shell, safeStorage, utilityProcess } =
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const net = require('node:net');
+const os = require('node:os');
+const fsSync = require('node:fs');
 const { exportData, importData } = require('./data.cjs');
 app.setName('GitHub Monitor');
 const smoke = process.argv.includes('--smoke-test');
-if (smoke) app.setPath('userData', path.join(process.cwd(), 'release', 'smoke-profile'));
+// A fresh profile outside the checkout prevents missing packaged dependencies
+// from being supplied by an earlier build or the repository's node_modules.
+if (smoke) app.setPath('userData', fsSync.mkdtempSync(path.join(os.tmpdir(), 'github-monitor-smoke-')));
 
 let window;
 let server;

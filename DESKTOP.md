@@ -19,11 +19,13 @@ Electron内でNext.jsのproduction serverを起動する。別途Node.jsをイ�
 Node.js 22.12以降で `npm ci` を実行する。
 
 - `npm run desktop:build` : standalone serverと静的assetを用意する。token・取得済みデータを同梱しない。
+- Turbopackが環境制限で停止する場合は `npx next build --webpack && node desktop/prepare.cjs` で同じstandalone serverを生成できる。
 - `npm run desktop:start` : アプリを起動する。
 - `npm run desktop:package` : 実行OS向けの配布物を `release` に作る。WindowsはNSIS installer、MacはDMG/ZIP。
 - `npm run test:desktop` : データ移行・秘密情報除外・上書き拒否を確認する。
 - `npm run desktop:smoke` : 非表示アプリとRepository内のテストprofileで両branch scope・日別表示・再起動後の保存を確認する。GitHub接続設定は使わない。
 - `node desktop/verify.cjs` : build後のserverへ環境設定・個人cache・現在のtokenが混入していないことを検証する。
+- パッケージ後も `node desktop/verify.cjs "release/mac-arm64/GitHub Monitor.app/Contents/Resources/server"` で秘密情報除外と配布物内の依存を検証する。`desktop:smoke`は作業フォルダ外の新規profileを使う。Macアプリ本体にも `--smoke-test` を指定して検証する。
 
 Mac配布物はMac上で作る。GitHub Actionsの `Desktop packages` は手動実行でWindowsとMac（Apple Silicon / Intel）をビルドする。workflow追加だけでは実行しない。署名・公証は未設定で、一般公開用releaseにはApple Developer/Windows署名の設定が別途必要。
 
